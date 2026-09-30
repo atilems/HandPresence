@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#142230">
+<title>Convocation — Présence'Hand</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 150'%3E%3Ccircle cx='75' cy='75' r='68' fill='%230d5c9c'/%3E%3Cpath d='M30 111 L75 31 L120 111 L96 111 L75 73 L54 111 Z' fill='%23ffffff'/%3E%3Cpath d='M62 111 L75 87 L88 111 Z' fill='%23e8842a'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --court: #E9C46A; --ink: #1D2B3A; --panel: #142230; --panel-2: #1B2E40; --edge: #2C4358;
+    --text: #EAF1F6; --muted: #8FA6B8; --accent: #56CFE1; --present: #2A9D8F; --absent: #E63946; --late: #E9C46A;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--ink); color: var(--text);
+    font-family: "Inter","Segoe UI",system-ui,-apple-system,sans-serif; }
+  body { min-height: 100vh; display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+    background: var(--panel); border-bottom: 1px solid var(--edge); }
+  header svg { width: 28px; height: 28px; }
+  .logo { font-weight: 800; font-size: 18px; letter-spacing: -.5px; }
+  .logo b { color: var(--court); }
+  main { flex: 1; width: 100%; max-width: 560px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--edge); border-radius: 14px; padding: 16px; }
+  .card h2 { margin: 0 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+  .title { font-size: 22px; font-weight: 800; margin: 2px 0 2px; line-height: 1.2; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .info { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; margin-top: 14px; font-size: 15px; }
+  .info .k { color: var(--muted); }
+  .info a { color: var(--accent); }
+  .info .strong { font-weight: 700; color: var(--court); }
+  .block-title { margin: 16px 0 6px; font-weight: 700; font-size: 14px; }
+  label.fl { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 700; margin: 14px 0 6px; }
+  select, input[type=text] {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--edge); color: var(--text);
+    border-radius: 10px; padding: 12px; font-size: 16px; font-family: inherit;
+  }
+  select:focus, input:focus { outline: none; border-color: var(--accent); }
+  .choice { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+  .choice button {
+    background: var(--panel-2); border: 2px solid var(--edge); color: var(--text); border-radius: 12px;
+    padding: 16px 8px; font-size: 17px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .choice button.yes.on { background: var(--present); border-color: var(--present); }
+  .choice button.no.on  { background: var(--absent);  border-color: var(--absent); }
+  .send {
+    width: 100%; margin-top: 16px; background: var(--accent); color: #06222b; border: none; border-radius: 12px;
+    padding: 15px; font-size: 17px; font-weight: 800; cursor: pointer; font-family: inherit;
+  }
+  .send:disabled { opacity: .45; cursor: default; }
+  .current { margin-top: 10px; font-size: 14px; color: var(--muted); }
+  .msg { border-radius: 12px; padding: 12px 14px; font-size: 15px; font-weight: 600; }
+  .msg.ok { background: rgba(42,157,143,.18); border: 1px solid var(--present); }
+  .msg.err { background: rgba(230,57,70,.15); border: 1px solid var(--absent); }
+  .msg.info { background: var(--panel-2); border: 1px solid var(--edge); color: var(--muted); font-weight: 500; }
+  .lists { display: flex; flex-direction: column; gap: 12px; }
+  .lists h3 { margin: 0 0 6px; font-size: 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { background: var(--panel-2); border: 1px solid var(--edge); border-radius: 999px; padding: 5px 11px; font-size: 13px; }
+  .chip.yes { border-color: var(--present); }
+  .chip.no { border-color: var(--absent); }
+  .empty { color: var(--muted); font-size: 13px; font-style: italic; }
+  .loading { text-align: center; color: var(--muted); padding: 40px 0; }
+  footer { text-align: center; color: var(--muted); font-size: 11px; padding: 18px 16px 24px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<header>
+  <svg viewBox="0 0 150 150" aria-hidden="true">
+    <circle cx="75" cy="75" r="68" fill="#0d5c9c"/>
+    <path d="M30 111 L75 31 L120 111 L96 111 L75 73 L54 111 Z" fill="#ffffff"/>
+    <path d="M62 111 L75 87 L88 111 Z" fill="#e8842a"/>
+  </svg>
+  <div class="logo">Présence<b>'Hand</b></div>
+</header>
+
+<main id="app"><div class="loading">Chargement de la convocation…</div></main>
+
+<footer>
+  Présence'Hand · © ATILems<br>
+  Seuls le prénom et l'initiale du nom sont affichés. Les données sont supprimées 7 jours après le match.
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ====== CONFIGURATION — à remplir une fois ====== */
+  const CONFIG = {
+    SUPABASE_URL: "https://wokmrfllebbxeiidpqjv.supabase.co/rest/v1/",
+    SUPABASE_KEY: "sb_publishable_lNbT_4CKY2IwVSta9uo-GA_5bImoHiB"
+  };
+  /* ================================================ */
+
+  const $ = s => document.querySelector(s);
+  const app = $("#app");
+  const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const cid = new URLSearchParams(location.search).get("c") || "";
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  let conv = null;        // { id, data, match_date, reponses[] }
+  let selected = "";      // player id
+  let choice = "";        // "yes" | "no"
+  let flash = null;       // { type, text }
+  let sending = false;
+
+  async function rpc(fn, body){
+    const headers = { "Content-Type":"application/json", "apikey":CONFIG.SUPABASE_KEY };
+    if(/^eyJ/.test(CONFIG.SUPABASE_KEY)) headers.Authorization = "Bearer "+CONFIG.SUPABASE_KEY;
+    const r = await fetch(CONFIG.SUPABASE_URL.replace(/\/+$/,"")+"/rest/v1/rpc/"+fn, {
+      method:"POST", headers, body:JSON.stringify(body||{})
+    });
+    const txt = await r.text();
+    if(!r.ok){ let m=txt; try{ m=JSON.parse(txt).message||txt; }catch(_){} throw new Error(m||("Erreur "+r.status)); }
+    return txt ? JSON.parse(txt) : null;
+  }
+
+  // mémorise les joueurs déjà choisis sur ce téléphone (pratique d'un match à l'autre)
+  function rememberedIds(){ try{ return JSON.parse(localStorage.getItem("ph_my_players")||"[]"); }catch(_){ return []; } }
+  function remember(id){
+    try{ const a=rememberedIds().filter(x=>x!==id); a.unshift(id); localStorage.setItem("ph_my_players", JSON.stringify(a.slice(0,6))); }catch(_){}
+  }
+
+  const todayISO = () => { const d=new Date(); const p=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; };
+  function longDate(iso){
+    try{ const s=new Date(iso+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}); return s.charAt(0).toUpperCase()+s.slice(1); }
+    catch(_){ return iso; }
+  }
+  const mapLink = a => "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(a);
+  function respOf(pid){ return (conv.reponses||[]).find(r=>r.player_id===pid) || null; }
+
+  function showError(text){ app.innerHTML = `<div class="msg err">${esc(text)}</div>`; }
+
+  async function load(){
+    if(!UUID_RE.test(cid)){ showError("Lien de convocation invalide. Vérifiez que le lien a été copié en entier."); return; }
+    if(/VOTRE/.test(CONFIG.SUPABASE_URL)){ showError("Page non configurée (adresse Supabase manquante)."); return; }
+    try{
+      conv = await rpc("get_convocation", { p_id: cid });
+      if(!conv){ showError("Cette convocation n'existe plus (match passé ou supprimé)."); return; }
+      if(!selected){
+        const ids=(conv.data.players||[]).map(p=>p.id);
+        selected = rememberedIds().find(id=>ids.includes(id)) || "";
+        const r = selected ? respOf(selected) : null;
+        choice = r ? r.status : "";
+      }
+      render();
+    }catch(e){
+      showError("Impossible de charger la convocation. Vérifiez votre connexion puis rechargez la page.");
+    }
+  }
+
+  function render(){
+    const d = conv.data || {};
+    const players = d.players || [];
+    const past = conv.match_date < todayISO();
+    const r = selected ? respOf(selected) : null;
+    const cur = r ? r : null;
+
+    // ---- carte infos ----
+    let info = `<div class="info">`;
+    info += `<div class="k">📅</div><div>${esc(longDate(d.date||conv.match_date))}</div>`;
+    info += `<div class="k">📍</div><div>${d.home ? "Domicile" : "Extérieur"}${d.venue ? " — "+esc(d.venue) : ""}`
+         + (d.address ? `<br><a href="${esc(mapLink(d.address))}" target="_blank" rel="noopener">${esc(d.address)}</a>` : "") + `</div>`;
+    if(d.timeMeet)  info += `<div class="k">⏰</div><div>RDV <span class="strong">${esc(d.timeMeet)}</span>${d.home?"":" (sur place)"}</div>`;
+    if(d.timeMatch) info += `<div class="k">🤾</div><div>Match à ${esc(d.timeMatch)}</div>`;
+    info += `</div>`;
+    let covoit = "";
+    if(!d.home && d.covoit){
+      const c=d.covoit;
+      covoit = `<div class="block-title">🚗 Covoiturage</div><div class="info" style="margin-top:4px">`;
+      if(c.time)  covoit += `<div class="k">⏰</div><div>RDV <span class="strong">${esc(c.time)}</span></div>`;
+      if(c.place) covoit += `<div class="k">📍</div><div>${esc(c.place)}${c.placeAddress?`<br><a href="${esc(mapLink(c.placeAddress))}" target="_blank" rel="noopener">${esc(c.placeAddress)}</a>`:""}</div>`;
+      if(c.minibus) covoit += `<div class="k">🚐</div><div>${esc(c.minibus)}</div>`;
+      covoit += `</div>`;
+    }
+    const extra = d.home ? `<div class="current">🥤 Pensez à ramener à boire et/ou un goûter.</div>` : "";
+
+    let html = `<section class="card">
+      <h2>Convocation${d.team ? " · "+esc(d.team) : ""}</h2>
+      <div class="title">${d.opponent ? "Contre "+esc(d.opponent) : "Match"}</div>
+      ${info}${covoit}${extra}
+    </section>`;
+
+    if(flash) html += `<div class="msg ${flash.type}">${esc(flash.text)}</div>`;
+
+    // ---- formulaire ----
+    if(past){
+      html += `<div class="msg info">Ce match est passé : les réponses sont closes.</div>`;
+    } else {
+      const opts = players.map(p=>{
+        const rr=respOf(p.id); const mark = rr ? (rr.status==="yes"?" ✅":" ✖") : "";
+        return `<option value="${esc(p.id)}"${p.id===selected?" selected":""}>${esc(p.name)}${mark}</option>`;
+      }).join("");
+      const seatsVisible = !d.home && choice==="yes";
+      const seatOpts = ['<option value="0">Je ne peux pas conduire</option>']
+        .concat([1,2,3,4,5,6,7,8].map(n=>`<option value="${n}"${cur&&cur.seats===n?" selected":""}>Je peux emmener ${n} enfant${n>1?"s":""} en plus</option>`)).join("");
+      html += `<section class="card">
+        <h2>Votre réponse</h2>
+        <label class="fl" for="who">Joueur</label>
+        <select id="who"><option value="">— Choisir le nom —</option>${opts}</select>
+        ${cur ? `<div class="current">Réponse actuelle : <b>${cur.status==="yes"?"✅ Présent":"✖ Absent"}</b>${cur.comment?" — « "+esc(cur.comment)+" »":""} · vous pouvez la modifier.</div>` : ""}
+        <div class="choice">
+          <button class="yes${choice==="yes"?" on":""}" id="bYes">✅ Présent</button>
+          <button class="no${choice==="no"?" on":""}" id="bNo">✖ Absent</button>
+        </div>
+        ${seatsVisible ? `<label class="fl" for="seats">Covoiturage</label><select id="seats">${seatOpts}</select>` : ""}
+        <label class="fl" for="cmt">Commentaire (facultatif)</label>
+        <input type="text" id="cmt" maxlength="200" placeholder="Ex. : arrivera 15 min en retard" value="${esc(cur&&cur.comment||"")}">
+        <button class="send" id="send"${(!selected||!choice||sending)?" disabled":""}>${sending?"Envoi…":"Envoyer ma réponse"}</button>
+      </section>`;
+    }
+
+    // ---- récapitulatif ----
+    const yes=[], no=[], wait=[]; let seats=0;
+    players.forEach(p=>{ const rr=respOf(p.id); if(!rr) wait.push(p); else if(rr.status==="yes"){ yes.push(p); seats+=rr.seats||0; } else no.push(p); });
+    const chips = (arr,cls) => arr.length ? `<div class="chips">${arr.map(p=>`<span class="chip ${cls}">${esc(p.name)}</span>`).join("")}</div>` : `<div class="empty">Personne</div>`;
+    html += `<section class="card lists">
+      <h2>Réponses (${yes.length+no.length}/${players.length})</h2>
+      <div><h3>✅ Présents (${yes.length})</h3>${chips(yes,"yes")}</div>
+      <div><h3>✖ Absents (${no.length})</h3>${chips(no,"no")}</div>
+      <div><h3>⏳ En attente (${wait.length})</h3>${chips(wait,"")}</div>
+      ${!d.home ? `<div class="current">🚗 Places proposées en covoiturage : <b>${seats}</b></div>` : ""}
+    </section>`;
+
+    app.innerHTML = html;
+    bind();
+  }
+
+  function bind(){
+    const who=$("#who"); if(!who) return;
+    who.onchange = () => {
+      selected = who.value; flash=null;
+      const r = selected ? respOf(selected) : null;
+      choice = r ? r.status : "";
+      render();
+    };
+    $("#bYes").onclick = () => { choice="yes"; keepCmt(); render(); };
+    $("#bNo").onclick  = () => { choice="no";  keepCmt(); render(); };
+    $("#send").onclick = send;
+  }
+  // conserve le commentaire tapé quand on re-rend la page
+  let draftCmt = null;
+  function keepCmt(){ const c=$("#cmt"); if(c) draftCmt=c.value; }
+  const _render = render;
+  render = function(){ _render(); if(draftCmt!==null){ const c=$("#cmt"); if(c) c.value=draftCmt; draftCmt=null; } };
+
+  async function send(){
+    if(!selected || !choice || sending) return;
+    const cmt = ($("#cmt")||{}).value || "";
+    const seats = parseInt((($("#seats")||{}).value)||"0",10) || 0;
+    sending = true; keepCmt(); render();
+    try{
+      await rpc("repondre", { p_id:cid, p_player:selected, p_status:choice, p_comment:cmt, p_seats:seats });
+      remember(selected);
+      const p = (conv.data.players||[]).find(x=>x.id===selected);
+      flash = { type:"ok", text:`Merci ! Réponse enregistrée pour ${p?p.name:"le joueur"} : ${choice==="yes"?"présent ✅":"absent ✖"}.` };
+      sending = false; draftCmt=null;
+      conv = await rpc("get_convocation", { p_id: cid }) || conv;
+      render();
+      window.scrollTo({ top:0, behavior:"smooth" });
+    }catch(e){
+      sending = false;
+      flash = { type:"err", text:"L'envoi a échoué. Vérifiez votre connexion et réessayez." };
+      render();
+    }
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>
