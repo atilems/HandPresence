@@ -44,6 +44,16 @@
   }
   .choice button.yes.on { background: var(--present); border-color: var(--present); }
   .choice button.no.on  { background: var(--absent);  border-color: var(--absent); }
+  .transport { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+  .transport button {
+    text-align: left; background: var(--panel-2); border: 2px solid var(--edge); color: var(--text); border-radius: 12px;
+    padding: 12px 14px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .transport button small { display: block; color: var(--muted); font-weight: 500; font-size: 12.5px; margin-top: 2px; }
+  .transport button.on { border-color: var(--accent); background: rgba(86,207,225,.14); }
+  .tstats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+  .tstat { background: var(--panel-2); border: 1px solid var(--edge); border-radius: 10px; padding: 8px 10px; font-size: 13px; }
+  .tstat b { font-size: 18px; display: block; }
   .send {
     width: 100%; margin-top: 16px; background: var(--accent); color: #06222b; border: none; border-radius: 12px;
     padding: 15px; font-size: 17px; font-weight: 800; cursor: pointer; font-family: inherit;
@@ -102,6 +112,7 @@
   let conv = null;        // { id, data, match_date, reponses[] }
   let selected = "";      // player id
   let choice = "";        // "yes" | "no"
+  let transport = "";     // "covoit" | "direct" | "driver" (matchs à l'extérieur)
   let flash = null;       // { type, text }
   let sending = false;
 
@@ -128,6 +139,9 @@
     catch(_){ return iso; }
   }
   const mapLink = a => "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(a);
+  // ancienne réponse sans mode de transport mais avec des places => conducteur
+  function transportOf(r){ return r ? (r.transport || (r.seats ? "driver" : "")) : ""; }
+  const TLABEL = { covoit:"🚐 Covoiturage", direct:"📍 Direct", driver:"🚗 Conduit" };
   function respOf(pid){ return (conv.reponses||[]).find(r=>r.player_id===pid) || null; }
 
   function showError(text){ app.innerHTML = `<div class="msg err">${esc(text)}</div>`; }
@@ -135,6 +149,7 @@
   async function load(){
     if(!UUID_RE.test(cid)){ showError("Lien de convocation invalide. Vérifiez que le lien a été copié en entier."); return; }
     if(/VOTRE/.test(CONFIG.SUPABASE_URL)){ showError("Page non configurée (adresse Supabase manquante)."); return; }
+    if(/VOTRE|COLLEZ/.test(CONFIG.SUPABASE_KEY)){ showError("Page non configurée : la clé publique Supabase n'a pas été collée dans reponse.html (ligne SUPABASE_KEY)."); return; }
     try{
       conv = await rpc("get_convocation", { p_id: cid });
       if(!conv){ showError("Cette convocation n'existe plus (match passé ou supprimé)."); return; }
@@ -143,6 +158,7 @@
         selected = rememberedIds().find(id=>ids.includes(id)) || "";
         const r = selected ? respOf(selected) : null;
         choice = r ? r.status : "";
+        transport = transportOf(r);
       }
       render();
     }catch(e){
@@ -198,35 +214,53 @@
         const rr=respOf(p.id); const mark = rr ? (rr.status==="yes"?" ✅":" ✖") : "";
         return `<option value="${esc(p.id)}"${p.id===selected?" selected":""}>${esc(p.name)}${mark}</option>`;
       }).join("");
-      const seatsVisible = !d.home && choice==="yes";
-      const seatOpts = ['<option value="0">Je ne peux pas conduire</option>']
-        .concat([1,2,3,4,5,6,7,8].map(n=>`<option value="${n}"${cur&&cur.seats===n?" selected":""}>Je peux emmener ${n} enfant${n>1?"s":""} en plus</option>`)).join("");
+      const askTransport = !d.home && choice==="yes";
+      const seatOpts = [0,1,2,3,4,5,6,7,8].map(n=>`<option value="${n}"${cur&&cur.seats===n?" selected":""}>${n===0?"Aucune place en plus (je n'emmène que mon enfant)":"Je peux emmener "+n+" enfant"+(n>1?"s":"")+" en plus"}</option>`).join("");
+      const tbtn = (v, t, sub) => `<button class="${transport===v?"on":""}" data-t="${v}">${t}<small>${sub}</small></button>`;
+      const transportHtml = askTransport ? `<label class="fl">Comment vient-il ?</label>
+        <div class="transport">
+          ${tbtn("covoit","🚐 Au RDV covoiturage","Il a besoin d'une place dans une voiture ou le minibus")}
+          ${tbtn("driver","🚗 Au RDV covoiturage — je conduis","Je peux emmener d'autres enfants")}
+          ${tbtn("direct","📍 Directement sur place","Nous allons nous-mêmes au gymnase")}
+        </div>
+        ${transport==="driver"?`<label class="fl" for="seats">Places pour d'autres enfants</label><select id="seats">${seatOpts}</select>`:""}` : "";
+      const needT = askTransport && !transport;
       html += `<section class="card">
         <h2>Votre réponse</h2>
         <label class="fl" for="who">Joueur</label>
         <select id="who"><option value="">— Choisir le nom —</option>${opts}</select>
-        ${cur ? `<div class="current">Réponse actuelle : <b>${cur.status==="yes"?"✅ Présent":"✖ Absent"}</b>${cur.comment?" — « "+esc(cur.comment)+" »":""} · vous pouvez la modifier.</div>` : ""}
+        ${cur ? `<div class="current">Réponse actuelle : <b>${cur.status==="yes"?"✅ Présent":"✖ Absent"}</b>${cur.status==="yes"&&transportOf(cur)?" · "+TLABEL[transportOf(cur)]+(cur.seats?" ("+cur.seats+" pl.)":""):""}${cur.comment?" — « "+esc(cur.comment)+" »":""} · vous pouvez la modifier.</div>` : ""}
         <div class="choice">
           <button class="yes${choice==="yes"?" on":""}" id="bYes">✅ Présent</button>
           <button class="no${choice==="no"?" on":""}" id="bNo">✖ Absent</button>
         </div>
-        ${seatsVisible ? `<label class="fl" for="seats">Covoiturage</label><select id="seats">${seatOpts}</select>` : ""}
+        ${transportHtml}
         <label class="fl" for="cmt">Commentaire (facultatif)</label>
         <input type="text" id="cmt" maxlength="200" placeholder="Ex. : arrivera 15 min en retard" value="${esc(cur&&cur.comment||"")}">
-        <button class="send" id="send"${(!selected||!choice||sending)?" disabled":""}>${sending?"Envoi…":"Envoyer ma réponse"}</button>
+        <button class="send" id="send"${(!selected||!choice||needT||sending)?" disabled":""}>${sending?"Envoi…":needT?"Choisissez comment il vient":"Envoyer ma réponse"}</button>
       </section>`;
     }
 
     // ---- récapitulatif ----
-    const yes=[], no=[], wait=[]; let seats=0;
-    players.forEach(p=>{ const rr=respOf(p.id); if(!rr) wait.push(p); else if(rr.status==="yes"){ yes.push(p); seats+=rr.seats||0; } else no.push(p); });
-    const chips = (arr,cls) => arr.length ? `<div class="chips">${arr.map(p=>`<span class="chip ${cls}">${esc(p.name)}</span>`).join("")}</div>` : `<div class="empty">Personne</div>`;
+    const yes=[], no=[], wait=[]; let seats=0, needCovoit=0, drivers=0, direct=0;
+    players.forEach(p=>{ const rr=respOf(p.id); if(!rr) wait.push(p); else if(rr.status==="yes"){
+      yes.push(p); const t=transportOf(rr);
+      if(t==="driver"){ drivers++; seats+=rr.seats||0; } else if(t==="direct") direct++; else if(t==="covoit") needCovoit++;
+    } else no.push(p); });
+    const icon = p => { if(d.home) return ""; const t=transportOf(respOf(p.id)); return t==="driver"?" 🚗":t==="direct"?" 📍":t==="covoit"?" 🚐":""; };
+    const chips = (arr,cls) => arr.length ? `<div class="chips">${arr.map(p=>`<span class="chip ${cls}">${esc(p.name)}${cls==="yes"?icon(p):""}</span>`).join("")}</div>` : `<div class="empty">Personne</div>`;
+    const bal = seats - needCovoit;
     html += `<section class="card lists">
       <h2>Réponses (${yes.length+no.length}/${players.length})</h2>
       <div><h3>✅ Présents (${yes.length})</h3>${chips(yes,"yes")}</div>
       <div><h3>✖ Absents (${no.length})</h3>${chips(no,"no")}</div>
       <div><h3>⏳ En attente (${wait.length})</h3>${chips(wait,"")}</div>
-      ${!d.home ? `<div class="current">🚗 Places proposées en covoiturage : <b>${seats}</b></div>` : ""}
+      ${!d.home ? `<div><h3>🚗 Covoiturage</h3><div class="tstats">
+          <div class="tstat"><b>${needCovoit}</b>🚐 enfant${needCovoit>1?"s":""} à emmener</div>
+          <div class="tstat"><b>${seats}</b>place${seats>1?"s":""} proposée${seats>1?"s":""} (${drivers} conducteur${drivers>1?"s":""})</div>
+          <div class="tstat"><b>${direct}</b>📍 direct sur place</div>
+          <div class="tstat"><b>${bal>=0?"✓":bal}</b>${bal>=0?"places suffisantes":"place"+(bal<-1?"s":"")+" manquante"+(bal<-1?"s":"")}</div>
+        </div></div>` : ""}
     </section>`;
 
     app.innerHTML = html;
@@ -239,9 +273,11 @@
       selected = who.value; flash=null;
       const r = selected ? respOf(selected) : null;
       choice = r ? r.status : "";
+      transport = transportOf(r);
       render();
     };
     $("#bYes").onclick = () => { choice="yes"; keepCmt(); render(); };
+    document.querySelectorAll(".transport button").forEach(b=>{ b.onclick=()=>{ transport=b.dataset.t; keepCmt(); render(); }; });
     $("#bNo").onclick  = () => { choice="no";  keepCmt(); render(); };
     $("#send").onclick = send;
   }
@@ -252,15 +288,17 @@
   render = function(){ _render(); if(draftCmt!==null){ const c=$("#cmt"); if(c) c.value=draftCmt; draftCmt=null; } };
 
   async function send(){
-    if(!selected || !choice || sending) return;
+    const away = !(conv.data||{}).home;
+    if(!selected || !choice || sending || (away && choice==="yes" && !transport)) return;
     const cmt = ($("#cmt")||{}).value || "";
     const seats = parseInt((($("#seats")||{}).value)||"0",10) || 0;
     sending = true; keepCmt(); render();
     try{
-      await rpc("repondre", { p_id:cid, p_player:selected, p_status:choice, p_comment:cmt, p_seats:seats });
+      const t = away && choice==="yes" ? transport : null;
+      await rpc("repondre", { p_id:cid, p_player:selected, p_status:choice, p_comment:cmt, p_seats: t==="driver"?seats:0, p_transport:t });
       remember(selected);
       const p = (conv.data.players||[]).find(x=>x.id===selected);
-      flash = { type:"ok", text:`Merci ! Réponse enregistrée pour ${p?p.name:"le joueur"} : ${choice==="yes"?"présent ✅":"absent ✖"}.` };
+      flash = { type:"ok", text:`Merci ! Réponse enregistrée pour ${p?p.name:"le joueur"} : ${choice==="yes"?"présent ✅"+(t?" · "+TLABEL[t]:""):"absent ✖"}.` };
       sending = false; draftCmt=null;
       conv = await rpc("get_convocation", { p_id: cid }) || conv;
       render();
