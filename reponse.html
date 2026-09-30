@@ -88,8 +88,8 @@
 
   /* ====== CONFIGURATION — à remplir une fois ====== */
   const CONFIG = {
-    SUPABASE_URL: "https://wokmrfllebbxeiidpqjv.supabase.co",
-    SUPABASE_KEY: "sb_publishable_lNbT_4CKY2IwVSta9uo-GA_5bImoHiB"
+    SUPABASE_URL: "https://VOTRE-PROJET.supabase.co",
+    SUPABASE_KEY: "VOTRE_CLE_PUBLIQUE"
   };
   /* ================================================ */
 
@@ -146,7 +146,13 @@
       }
       render();
     }catch(e){
-      showError("Impossible de charger la convocation. Vérifiez votre connexion puis rechargez la page.");
+      const m=(e&&e.message)||String(e);
+      let hint="";
+      if(/Failed to fetch|NetworkError|Load failed/i.test(m)) hint="Serveur injoignable : vérifiez SUPABASE_URL dans reponse.html (ou votre connexion).";
+      else if(/api key|apikey|JWT|401|Unauthorized|Invalid/i.test(m)) hint="Clé refusée : vérifiez SUPABASE_KEY dans reponse.html (clé publique « anon » ou « publishable », jamais « secret »).";
+      else if(/function|does not exist|404|schema cache/i.test(m)) hint="Fonction introuvable : le script supabase.sql n'a pas été exécuté sur ce projet.";
+      app.innerHTML = `<div class="msg err">Impossible de charger la convocation. Vérifiez votre connexion puis rechargez la page.</div>
+        <div class="msg info" style="font-size:12px;word-break:break-word">${hint?esc(hint)+"<br>":""}Détail technique : ${esc(m)}</div>`;
     }
   }
 
