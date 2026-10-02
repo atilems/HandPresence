@@ -1,0 +1,2568 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Présence'Hand — Gestion des présences</title>
+<meta name="theme-color" content="#142230">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Présence'Hand">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 150'%3E%3Ccircle cx='75' cy='75' r='68' fill='%230d5c9c'/%3E%3Cpath d='M30 111 L75 31 L120 111 L96 111 L75 73 L54 111 Z' fill='%23ffffff'/%3E%3Cpath d='M62 111 L75 87 L88 111 Z' fill='%23e8842a'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 150'%3E%3Ccircle cx='75' cy='75' r='68' fill='%230d5c9c'/%3E%3Cpath d='M30 111 L75 31 L120 111 L96 111 L75 73 L54 111 Z' fill='%23ffffff'/%3E%3Cpath d='M62 111 L75 87 L88 111 Z' fill='%23e8842a'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --court: #E9C46A;
+    --court-line: #FFFFFF;
+    --six: #E76F51;
+    --nine: #F4A261;
+    --ink: #1D2B3A;
+    --panel: #142230;
+    --panel-2: #1B2E40;
+    --edge: #2C4358;
+    --text: #EAF1F6;
+    --muted: #8FA6B8;
+    --accent: #56CFE1;
+    --danger: #E63946;
+    --present: #2A9D8F;
+    --absent: #E63946;
+    --excused: #F4A261;
+    --late: #E9C46A;
+    --called: #56CFE1;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%;
+    background: var(--ink);
+    color: var(--text);
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+  }
+  body { display: flex; flex-direction: column; user-select: none; }
+
+  /* ---------- HEADER ---------- */
+  header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--edge);
+    flex-shrink: 0;
+  }
+  .brand-logo { width: 30px; height: 30px; flex-shrink: 0; display: block; }
+  .logo {
+    font-weight: 800; font-size: 19px; letter-spacing: -0.5px;
+    display: flex; align-items: baseline; gap: 2px;
+  }
+  .logo b { color: var(--court); }
+  .logo span { color: var(--muted); font-weight: 500; font-size: 12px; margin-left: 8px; letter-spacing: 0; }
+  header .spacer { flex: 1; }
+  .hbtn {
+    background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--edge); border-radius: 8px;
+    padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .hbtn:hover { border-color: var(--accent); }
+  .hbtn.primary { background: var(--accent); color: #06222b; border-color: var(--accent); }
+  .menu-toggle { display: none; }
+
+  main { flex: 1; display: flex; min-height: 0; }
+
+  /* ---------- ASIDE : effectif ---------- */
+  aside {
+    width: 236px; flex-shrink: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--edge);
+    padding: 14px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .sidebar-head { display: none; }
+  .group h3 {
+    margin: 0 0 8px; font-size: 11px; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--muted); font-weight: 700;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .group.group-active h3 { color: var(--accent); }
+  .mini {
+    background: var(--panel-2); border: 1px solid var(--edge); color: var(--accent);
+    border-radius: 7px; width: 26px; height: 26px; font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-weight: 700;
+  }
+  .mini:hover { border-color: var(--accent); }
+  .mini.danger { color: var(--muted); }
+  .mini.danger:hover { color: var(--danger); border-color: var(--danger); }
+
+  /* --- Sélecteur d'équipe --- */
+  .team-picker { display: flex; align-items: center; gap: 6px; }
+  .team-picker select {
+    flex: 1; min-width: 0;
+    background: var(--panel-2); border: 1px solid var(--edge); color: var(--text);
+    border-radius: 8px; padding: 8px 10px; font-size: 13px; font-weight: 700;
+    font-family: inherit; cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%238FA6B8' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+  }
+  .team-picker select:focus { outline: none; border-color: var(--accent); }
+
+  /* --- Sélecteur de entraînement --- */
+  .session-picker { display: flex; flex-direction: column; gap: 8px; }
+  .session-combo { display: flex; align-items: center; gap: 6px; }
+  .session-combo select {
+    flex: 1; min-width: 0;
+    background: var(--panel-2); border: 1px solid var(--edge); color: var(--text);
+    border-radius: 8px; padding: 8px 10px; font-size: 13px; font-weight: 600;
+    font-family: inherit; cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%238FA6B8' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+  }
+  .session-combo select:focus { outline: none; border-color: var(--accent); }
+  .session-combo select:disabled { color: var(--muted); cursor: default; }
+  .session-combo .sdel {
+    flex-shrink: 0; width: 34px; height: 34px; border-radius: 8px;
+    background: var(--panel-2); border: 1px solid var(--edge); color: var(--muted);
+    display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer;
+  }
+  .session-combo .sdel:hover { color: var(--danger); border-color: var(--danger); }
+
+  .players { display: flex; flex-direction: column; gap: 6px; }
+  .player {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--panel-2); border: 1px solid var(--edge);
+    border-radius: 9px; padding: 8px 9px;
+  }
+  .player:hover { border-color: var(--accent); }
+  .num {
+    width: 32px; height: 32px; flex-shrink: 0; border-radius: 8px;
+    background: var(--panel); border: 1px solid var(--edge);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px;
+  }
+  .pinfo { flex: 1; min-width: 0; }
+  .pinfo .pn { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: text; }
+  .pinfo .ps { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 1px; }
+  .pdel { color: var(--muted); font-size: 14px; padding: 2px 4px; border-radius: 5px; cursor: pointer; }
+  .pdel:hover { color: var(--danger); background: #ffffff10; }
+
+  /* salles à domicile */
+  .venues-list { display: flex; flex-direction: column; gap: 6px; }
+  .venue {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel-2); border: 1px solid var(--edge);
+    border-radius: 9px; padding: 8px 9px;
+  }
+  .venue:hover { border-color: var(--accent); }
+  .venue .vinfo { flex: 1; min-width: 0; }
+  .venue .vn { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .venue .va { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+  .venue .vedit, .venue .vdel { color: var(--muted); font-size: 13px; padding: 2px 4px; border-radius: 5px; cursor: pointer; flex-shrink: 0; }
+  .venue .vedit:hover { color: var(--accent); background: #ffffff10; }
+  .venue .vdel:hover { color: var(--danger); background: #ffffff10; }
+  .venues-empty { font-size: 11px; color: var(--muted); font-style: italic; padding: 6px 2px; }
+  .roster-io { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+  .io-btn {
+    background: var(--panel-2); border: 1px solid var(--edge); color: var(--text);
+    border-radius: 8px; padding: 8px 6px; font-size: 11px; font-weight: 600; cursor: pointer;
+  }
+  .io-btn:hover { border-color: var(--accent); }
+
+  /* ---------- CREDIT ---------- */
+  .credit {
+    margin-top: auto; padding-top: 14px;
+    border-top: 1px solid var(--edge);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .credit-logo { width: 26px; height: 26px; flex-shrink: 0; }
+  .credit-txt { display: flex; flex-direction: column; line-height: 1.3; }
+  .credit-txt span { font-size: 12px; font-weight: 700; color: var(--text); }
+  .credit-txt small { font-size: 10px; color: var(--muted); }
+
+  /* ---------- SCÈNE ---------- */
+  .stage {
+    flex: 1; min-width: 0; display: flex; flex-direction: column;
+    padding: 12px; gap: 12px; overflow-y: auto;
+    background: radial-gradient(circle at 50% 30%, #1b2c3c, var(--ink));
+  }
+
+  /* onglets de mode : Entraînements / Matchs */
+  .mode-tabs { display: flex; gap: 8px; }
+  .mode-tab {
+    flex: 1; background: var(--panel); border: 1px solid var(--edge); color: var(--muted);
+    border-radius: 10px; padding: 11px 12px; font-size: 14px; font-weight: 700; cursor: pointer;
+    font-family: inherit; transition: color .12s, border-color .12s, background .12s;
+  }
+  .mode-tab:hover { border-color: var(--accent); color: var(--text); }
+  .mode-tab.active { background: var(--accent); color: #06222b; border-color: var(--accent); }
+
+  /* bandeau entraînement + compteurs */
+  .board {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: var(--panel); border: 1px solid var(--edge);
+    border-radius: 12px; padding: 12px 16px;
+  }
+  .board .sesh { flex: 1; min-width: 160px; }
+  .board .sesh .dt-input {
+    font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums;
+    background: transparent; border: 1px solid transparent; color: var(--text);
+    font-family: inherit; border-radius: 8px; padding: 2px 6px; margin-left: -6px;
+    cursor: pointer;
+  }
+  .board .sesh .dt-input:hover { border-color: var(--edge); }
+  .board .sesh .dt-input:focus { outline: none; border-color: var(--accent); background: var(--panel-2); }
+  .board .sesh .dt-input::-webkit-calendar-picker-indicator { filter: invert(.7); cursor: pointer; }
+  .board .sesh .lb { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .counters { display: flex; gap: 8px; flex-wrap: wrap; }
+  .counter {
+    display: flex; flex-direction: column; align-items: center;
+    background: var(--panel-2); border: 1px solid var(--edge);
+    border-radius: 10px; padding: 8px 12px; min-width: 62px;
+  }
+  .counter .v { font-size: 22px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  .counter .k { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-top: 3px; }
+  .counter.c-present .v { color: var(--present); }
+  .counter.c-absent .v { color: var(--absent); }
+  .counter.c-excused .v { color: var(--excused); }
+  .counter.c-late .v { color: var(--late); }
+  .counter.c-called .v { color: var(--called); }
+  .counter.c-rate .v { color: var(--accent); }
+  .counter.c-pointed .v { color: var(--text); }
+
+  /* barre d'actions rapides */
+  .quickbar { display: flex; gap: 6px; flex-wrap: wrap; }
+  .quickbar button {
+    background: var(--panel-2); border: 1px solid var(--edge); color: var(--text);
+    border-radius: 8px; padding: 7px 11px; font-size: 12px; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .quickbar button:hover { border-color: var(--accent); }
+  .quickbar .qb-all-present { border-color: rgba(42,157,143,.6); }
+  .quickbar .qb-reset { border-color: rgba(230,57,70,.5); }
+  .quickbar .qb-share { border-color: var(--present); background: var(--present); color: #06222b; font-weight: 700; }
+  .quickbar .qb-share:hover { filter: brightness(1.1); }
+  .quickbar .qb-share, .quickbar .qb-match { display: none; }   /* visibles en mode match seulement */
+  body.mode-match .quickbar .qb-share, body.mode-match .quickbar .qb-match { display: inline-flex; }
+  .quickbar .qb-match { border-color: rgba(86,207,225,.55); }
+
+  /* panneau détails match */
+  .match-details { display: none; gap: 10px; flex-wrap: wrap;
+    background: var(--panel); border: 1px solid var(--edge); border-radius: 12px; padding: 12px 16px; }
+  body.mode-match .match-details { display: flex; }
+  .md-field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 130px; }
+  .md-field label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 700; }
+  .md-field input {
+    background: var(--panel-2); border: 1px solid var(--edge); color: var(--text);
+    border-radius: 8px; padding: 8px 10px; font-size: 14px; font-family: inherit; width: 100%;
+  }
+  .md-field input:focus { outline: none; border-color: var(--accent); }
+  .md-field input::-webkit-calendar-picker-indicator { filter: invert(.7); cursor: pointer; }
+  .md-field select {
+    background: var(--panel-2); border: 1px solid var(--edge); color: var(--text);
+    border-radius: 8px; padding: 8px 10px; font-size: 14px; font-family: inherit; width: 100%;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%238FA6B8' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+  }
+  .md-field select:focus { outline: none; border-color: var(--accent); }
+  /* champs conditionnels selon le lieu */
+  .md-home-only, .md-away-only { display: none; }
+  body.loc-home .md-home-only { display: flex; }
+  body.loc-away .md-away-only { display: flex; }
+  .md-toggle { display: flex; gap: 6px; }
+  .md-loc {
+    flex: 1; background: var(--panel-2); border: 1px solid var(--edge); color: var(--muted);
+    border-radius: 8px; padding: 8px 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .md-loc:hover { border-color: var(--accent); }
+  .md-loc.on { background: var(--accent); color: #06222b; border-color: var(--accent); }
+
+  /* bandeau convocation en ligne (v2) */
+  .md-online {
+    flex-basis: 100%; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    border-top: 1px solid var(--edge); padding-top: 10px; font-size: 12.5px; color: var(--muted);
+  }
+  .md-online:empty { display: none; }
+  .md-online a { color: var(--accent); cursor: pointer; text-decoration: underline; }
+  .oc { background: var(--panel-2); border: 1px solid var(--edge); border-radius: 999px; padding: 4px 10px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .oc.yes { border-color: var(--present); }
+  .oc.no { border-color: var(--absent); }
+  .oc.wait { border-color: var(--late); }
+
+  /* badges de réponse dans la feuille d'appel */
+  .rb { display: inline-block; font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 1px 7px; margin-left: 6px; border: 1px solid var(--edge); color: var(--text); }
+  .rb.yes { border-color: var(--present); background: rgba(42,157,143,.18); }
+  .rb.no { border-color: var(--absent); background: rgba(230,57,70,.15); }
+  .rb.wait { border-color: var(--late); color: var(--late); }
+  .rcmt { color: var(--text); font-style: italic; }
+
+  /* formulaire de réglages (v2) */
+  .form-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  .form-field label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 700; }
+  .form-field input {
+    background: var(--panel-2); border: 1px solid var(--edge); color: var(--text);
+    border-radius: 8px; padding: 9px 10px; font-size: 14px; font-family: inherit; width: 100%; user-select: text;
+  }
+  .form-field input:focus { outline: none; border-color: var(--accent); }
+  .help { font-size: 12.5px; color: var(--muted); line-height: 1.45; margin: -6px 0 14px; }
+  .ol-test { font-size: 12.5px; min-height: 18px; margin-bottom: 4px; }
+  .ol-test.ok { color: var(--present); }
+  .ol-test.err { color: var(--danger); }
+
+  /* v2.1 : espace partagé */
+  #onlineBtn { position: relative; }
+  .sync-dot { position: absolute; top: 3px; right: 3px; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--panel); }
+  .sync-dot.off { display: none; }
+  .sync-dot.ok { background: var(--present); }
+  .sync-dot.busy { background: var(--accent); animation: pulse 1s infinite; }
+  .sync-dot.err { background: var(--danger); }
+  @keyframes pulse { 50% { opacity: .3; } }
+  .space-line { font-size: 11px; color: var(--muted); margin: -2px 0 8px; }
+  .space-line:empty { display: none; }
+  .space-line b { color: var(--accent); }
+  .modal-wide { max-width: 520px; }
+  details.sect { border: 1px solid var(--edge); border-radius: 11px; padding: 0 14px; margin-bottom: 10px; background: var(--panel-2); }
+  details.sect > summary { cursor: pointer; padding: 12px 0; font-weight: 700; font-size: 14px; list-style: none; display: flex; gap: 8px; align-items: center; }
+  details.sect > summary::-webkit-details-marker { display: none; }
+  details.sect > summary::before { content: "▸"; color: var(--muted); transition: transform .15s; }
+  details.sect[open] > summary::before { transform: rotate(90deg); }
+  details.sect[open] { padding-bottom: 12px; }
+  .sect-state { margin-left: auto; font-size: 11.5px; font-weight: 600; color: var(--present); max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  details.sect .help { margin: 0 0 12px; }
+  details.sect .venue { background: var(--panel); margin-bottom: 6px; }
+  .sub-h { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin: 14px 0 8px; }
+  .invite-box { display: flex; gap: 6px; margin-bottom: 12px; }
+  .invite-box input { flex: 1; min-width: 0; background: var(--panel-2); border: 1px solid var(--edge); color: var(--text); border-radius: 8px; padding: 9px 10px; font-size: 13px; font-family: inherit; user-select: text; }
+  .invite-box input:focus { outline: none; border-color: var(--accent); }
+
+  /* liste d'appel */
+  .roll {
+    background: var(--panel); border: 1px solid var(--edge); border-radius: 12px;
+    display: flex; flex-direction: column;
+  }
+  .roll h3 {
+    margin: 0; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;
+    font-weight: 700; padding: 11px 14px; border-bottom: 1px solid var(--edge);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .roll-row {
+    display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+    border-bottom: 1px solid #1c2b3a;
+  }
+  .roll-row:last-child { border-bottom: none; }
+  .roll-row .rnum {
+    width: 34px; height: 34px; flex-shrink: 0; border-radius: 8px;
+    background: var(--panel-2); border: 1px solid var(--edge);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums;
+  }
+  .roll-row .rwho { flex: 1; min-width: 0; }
+  .roll-row .rwho .rn { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .roll-row .rwho .rs { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .status-btns { display: flex; gap: 5px; flex-shrink: 0; }
+  .sbtn {
+    border: 1px solid var(--edge); background: var(--panel-2);
+    border-radius: 8px; padding: 6px 9px; cursor: pointer;
+    font-size: 15px; line-height: 1; display: flex; align-items: center; justify-content: center;
+    transition: transform .05s, filter .1s;
+    min-width: 38px;
+  }
+  .sbtn:active { transform: scale(.9); }
+  .sbtn:hover { filter: brightness(1.25); }
+  .sbtn.on.s-present { background: var(--present); border-color: var(--present); }
+  .sbtn.on.s-absent  { background: var(--absent); border-color: var(--absent); }
+  .sbtn.on.s-excused { background: var(--excused); border-color: var(--excused); color: #2c2718; }
+  .sbtn.on.s-late    { background: var(--late); border-color: var(--late); color: #2c2718; }
+  .sbtn.on.s-called  { background: var(--called); border-color: var(--called); color: #06222b; }
+  .roll-row.st-present { box-shadow: inset 3px 0 0 var(--present); }
+  .roll-row.st-absent  { box-shadow: inset 3px 0 0 var(--absent); }
+  .roll-row.st-excused { box-shadow: inset 3px 0 0 var(--excused); }
+  .roll-row.st-late    { box-shadow: inset 3px 0 0 var(--late); }
+  .roll-row.st-called  { box-shadow: inset 3px 0 0 var(--called); }
+  .roll .empty-note { color: var(--muted); font-size: 13px; font-style: italic; padding: 22px; text-align: center; }
+
+  .toast {
+    position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+    background: var(--panel); border: 1px solid var(--accent);
+    padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 200;
+    max-width: 90vw; text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(4px); }
+
+  /* modale */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(8,14,20,.72); backdrop-filter: blur(3px);
+    display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: var(--panel); border: 1px solid var(--edge);
+    border-radius: 14px; padding: 20px; width: 100%; max-width: 460px;
+    box-shadow: 0 24px 70px rgba(0,0,0,.6); max-height: 85vh; overflow-y: auto;
+  }
+  .modal h2 { margin: 0 0 16px; font-size: 17px; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .modal-actions .hbtn { flex: 1; justify-content: center; }
+  .stat-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .stat-table th, .stat-table td { padding: 7px 8px; text-align: left; border-bottom: 1px solid var(--edge); }
+  .stat-table th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+  .stat-table td.n { text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; }
+  .stat-table .rate-good { color: var(--present); }
+  .stat-table .rate-mid { color: var(--late); }
+  .stat-table .rate-bad { color: var(--absent); }
+
+  /* cartes de choix de rapport */
+  .report-cards { display: flex; flex-direction: column; gap: 10px; }
+  .report-card {
+    display: flex; align-items: center; gap: 13px; text-align: left;
+    background: var(--panel-2); border: 1px solid var(--edge); color: var(--text);
+    border-radius: 11px; padding: 13px 14px; cursor: pointer; font-family: inherit;
+    transition: border-color .1s, background .1s;
+  }
+  .report-card:hover { border-color: var(--accent); background: #1f3346; }
+  .report-card .rc-ico { font-size: 24px; flex-shrink: 0; width: 30px; text-align: center; }
+  .report-card .rc-t { font-size: 14px; font-weight: 700; }
+  .report-card .rc-d { font-size: 11.5px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+  .report-player-pick { display: none; margin: -2px 0 2px; padding-left: 43px; }
+  .report-player-pick.show { display: block; }
+  .report-player-pick select {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--accent); color: var(--text);
+    border-radius: 8px; padding: 8px 10px; font-size: 13px; font-weight: 600; font-family: inherit;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%2356CFE1' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+  }
+  .report-player-pick select:focus { outline: none; }
+
+  .menu-overlay { display: none; }
+
+  /* ---------- MOBILE ---------- */
+  @media (max-width: 900px) {
+    aside {
+      position: absolute; z-index: 30; height: 100%; left: 0; top: 0;
+      width: 280px; max-width: 82vw;
+      transform: translateX(-100%); transition: transform .25s;
+      box-shadow: 6px 0 24px rgba(0,0,0,.5);
+    }
+    aside.open { transform: none; }
+    .sidebar-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin: -4px 0 4px; padding-bottom: 10px; border-bottom: 1px solid var(--edge);
+    }
+    .sidebar-head span { font-weight: 700; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .sidebar-head button {
+      background: var(--panel-2); border: 1px solid var(--edge); color: var(--text);
+      width: 32px; height: 32px; border-radius: 8px; font-size: 15px; cursor: pointer;
+    }
+    .menu-overlay.show { display: block; position: absolute; inset: 0; z-index: 20; background: rgba(6,12,18,.55); }
+    .menu-toggle { display: inline-flex !important; }
+    header { gap: 8px; padding: 8px 12px; }
+    header .logo span { display: none; }
+    .brand-logo { width: 26px; height: 26px; }
+    .hbtn { padding: 8px 10px; font-size: 12px; }
+    .board .sesh .dt { font-size: 19px; }
+    .status-btns { gap: 4px; }
+    .sbtn { min-width: 34px; padding: 6px 7px; }
+  }
+  @media (max-width: 520px) {
+    header .hbtn .lbl { display: none; }
+    .logo { font-size: 17px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <button class="hbtn menu-toggle" id="menuToggle" title="Effectif">☰</button>
+  <svg class="brand-logo" viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Icône ATILems">
+    <circle cx="75" cy="75" r="68" fill="#0d5c9c"/>
+    <path d="M30 111 L75 31 L120 111 L96 111 L75 73 L54 111 Z" fill="#ffffff"/>
+    <path d="M62 111 L75 87 L88 111 Z" fill="#e8842a"/>
+  </svg>
+  <div class="logo">Présence<b>'Hand</b><span>gestion des entraînements</span></div>
+  <div class="spacer"></div>
+  <button class="hbtn" id="onlineBtn" title="Réglages en ligne : serveur, compte, espace partagé, sauvegardes">⚙<span class="sync-dot off" id="syncDot"></span></button>
+  <button class="hbtn" id="statsBtn" title="Bilan de présence">📊<span class="lbl"> Bilan</span></button>
+  <button class="hbtn primary" id="pdfBtn" title="Rapport PDF">📄<span class="lbl"> Rapport PDF</span></button>
+</header>
+
+<main>
+  <div class="menu-overlay" id="menuOverlay"></div>
+  <aside id="sidebar">
+    <div class="sidebar-head">
+      <span>Effectif & entraînements</span>
+      <button id="menuClose" title="Fermer">✕</button>
+    </div>
+
+    <div class="group">
+      <h3>Entraînements <button class="mini" id="addSession" title="Nouvel entraînement">+</button></h3>
+      <div class="session-picker">
+        <div class="session-combo">
+          <select id="sessionSelect"></select>
+          <div class="sdel" id="delSession" title="Supprimer l'entraînement">🗑</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>Matchs <button class="mini" id="addMatch" title="Nouveau match">+</button></h3>
+      <div class="session-picker">
+        <div class="session-combo">
+          <select id="matchSelect"></select>
+          <div class="sdel" id="delMatch" title="Supprimer le match">🗑</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group" id="venuesGroup">
+      <h3>Salles (domicile)
+        <span>
+          <button class="mini" id="addVenue" title="Ajouter une salle">+</button>
+        </span>
+      </h3>
+      <div class="venues-list" id="venuesList"></div>
+    </div>
+
+    <div class="group">
+      <h3>Équipe</h3>
+      <div class="space-line" id="spaceLine"></div>
+      <div class="team-picker">
+        <select id="teamSelect" title="Équipe active"></select>
+        <button class="mini" id="addTeam" title="Nouvelle équipe">+</button>
+        <button class="mini" id="renameTeam" title="Renommer l'équipe">✎</button>
+        <button class="mini danger" id="delTeam" title="Supprimer l'équipe">🗑</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>Joueurs <button class="mini" id="addPlayer" title="Ajouter un joueur">+</button></h3>
+      <div class="players" id="players"></div>
+      <div class="roster-io">
+        <button class="io-btn" id="saveRoster" title="Sauvegarder dans ce navigateur">💾 Sauver</button>
+        <button class="io-btn" id="loadRoster" title="Recharger la sauvegarde">↺ Charger</button>
+        <button class="io-btn" id="exportRoster" title="Exporter / partager en fichier">⤓ Fichier</button>
+        <button class="io-btn" id="importRoster" title="Importer un fichier">⤒ Importer</button>
+      </div>
+      <input type="file" id="rosterFile" accept="application/json,.json" style="display:none">
+    </div>
+
+    <div class="credit">
+      <svg class="credit-logo" viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Logo ATILems">
+        <circle cx="75" cy="75" r="68" fill="#0d5c9c"/>
+        <path d="M30 111 L75 31 L120 111 L96 111 L75 73 L54 111 Z" fill="#ffffff"/>
+        <path d="M62 111 L75 87 L88 111 Z" fill="#e8842a"/>
+      </svg>
+      <div class="credit-txt">
+        <span id="copyright">© <span id="year">2026</span> ATILems</span>
+        <small>Tous droits réservés · <span id="appVersion">v1.0.0</span></small>
+      </div>
+    </div>
+  </aside>
+
+  <section class="stage">
+    <div class="mode-tabs">
+      <button class="mode-tab" id="tabTraining" data-mode="training">🏃 Entraînements</button>
+      <button class="mode-tab" id="tabMatch" data-mode="match">🤾 Matchs</button>
+    </div>
+
+    <div class="board">
+      <div class="sesh">
+        <input type="date" class="dt-input" id="seshDate">
+      </div>
+      <div class="counters" id="counters"></div>
+    </div>
+
+    <div class="match-details" id="matchDetails">
+      <div class="md-field">
+        <label>Lieu</label>
+        <div class="md-toggle">
+          <button class="md-loc" id="locHome" data-loc="home">🏠 Domicile</button>
+          <button class="md-loc" id="locAway" data-loc="away">🚌 Extérieur</button>
+        </div>
+      </div>
+      <div class="md-field">
+        <label for="mdOpponent">Adversaire</label>
+        <input type="text" id="mdOpponent" placeholder="Nom de l'équipe adverse">
+      </div>
+      <div class="md-field md-home-only" id="mdVenueField">
+        <label for="mdVenue">Salle (domicile)</label>
+        <select id="mdVenue"></select>
+      </div>
+      <div class="md-field md-away-only" id="mdAddressField">
+        <label for="mdAddress">Adresse de la salle</label>
+        <input type="text" id="mdAddress" placeholder="Adresse complète du gymnase">
+      </div>
+      <div class="md-field">
+        <label for="mdTimeMatch">Heure du match</label>
+        <input type="time" id="mdTimeMatch">
+      </div>
+      <div class="md-field">
+        <label for="mdTimeMeet">Heure du RDV</label>
+        <input type="time" id="mdTimeMeet">
+      </div>
+      <div class="md-field md-away-only">
+        <label for="mdTimeCovoit">Heure RDV covoiturage</label>
+        <input type="time" id="mdTimeCovoit">
+      </div>
+      <div class="md-field md-away-only">
+        <label for="mdCovoitVenue">Lieu covoiturage</label>
+        <select id="mdCovoitVenue"></select>
+      </div>
+      <div class="md-field md-away-only">
+        <label for="mdMinibus">Minibus</label>
+        <select id="mdMinibus">
+          <option value="none">Aucun minibus</option>
+          <option value="one">Un minibus</option>
+          <option value="many">Deux mini bus</option>
+        </select>
+      </div>
+      <div class="md-online" id="mdOnline"></div>
+    </div>
+
+    <div class="quickbar">
+      <button class="qb-all-present" id="allPresent">✓ Tous présents</button>
+      <button class="qb-reset" id="resetSession">↺ Réinitialiser l'appel</button>
+      <button class="qb-share" id="shareConvoc">📲 Partager la convocation</button>
+      <button class="qb-match" id="refreshResp">🔄 Réponses</button>
+      <button class="qb-match" id="relanceBtn">🔔 Relancer</button>
+    </div>
+
+    <div class="roll">
+      <h3 id="rollTitle">Feuille d'appel <span id="rollCount"></span></h3>
+      <div id="rollList"></div>
+    </div>
+  </section>
+</main>
+
+<!-- Modale bilan -->
+<div class="modal-backdrop" id="statsBackdrop">
+  <div class="modal">
+    <h2 id="statsTitle">📊 Bilan par joueur</h2>
+    <table class="stat-table">
+      <thead><tr id="statsHead"></tr></thead>
+      <tbody id="statsBody"></tbody>
+    </table>
+    <div class="modal-actions">
+      <button class="hbtn" id="statsClose">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modale choix de rapport PDF -->
+<div class="modal-backdrop" id="pdfBackdrop">
+  <div class="modal">
+    <h2>📄 Choisir un rapport</h2>
+    <div class="report-cards">
+      <button class="report-card" id="repSession">
+        <div class="rc-ico">📋</div>
+        <div class="rc-txt"><div class="rc-t">Feuille de l'entraînement</div><div class="rc-d">L'appel de l'entraînement sélectionné (synthèse + détail).</div></div>
+      </button>
+      <button class="report-card" id="repPlayer">
+        <div class="rc-ico">👤</div>
+        <div class="rc-txt"><div class="rc-t">Suivi d'un joueur</div><div class="rc-d">L'historique de présence d'un joueur sur tous les entraînements.</div></div>
+      </button>
+      <div class="report-player-pick" id="repPlayerPick">
+        <select id="repPlayerSelect"></select>
+      </div>
+      <button class="report-card" id="repMatrix">
+        <div class="rc-ico">📊</div>
+        <div class="rc-txt"><div class="rc-t">Tableau global</div><div class="rc-d">Tous les joueurs × tous les entraînements, en un tableau.</div></div>
+      </button>
+    </div>
+    <div class="modal-actions">
+      <button class="hbtn" id="pdfCancel">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modale réglages en ligne (v2.1) -->
+<div class="modal-backdrop" id="onlineBackdrop">
+  <div class="modal modal-wide">
+    <h2>⚙ Réglages en ligne</h2>
+    <label class="md-field" style="display:block;margin-bottom:6px"><span style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700">Vous avez reçu une invitation d'un coach ?</span></label>
+    <div class="invite-box">
+      <input type="text" id="olInvite" placeholder="Collez ici le message ou le code PH1:…" autocomplete="off" spellcheck="false">
+      <button class="hbtn" id="olInviteBtn">Utiliser</button>
+    </div>
+
+    <details class="sect" id="sectServer">
+      <summary>1 · Serveur <span class="sect-state" id="stServer"></span></summary>
+      <p class="help">Le projet Supabase du club (voir le guide d'installation). La page de réponse sert aux confirmations des parents.</p>
+      <div class="form-field">
+        <label for="olUrl">Adresse du projet Supabase</label>
+        <input type="url" id="olUrl" placeholder="https://xxxxxxxx.supabase.co" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="form-field">
+        <label for="olKey">Clé publique (anon / publishable)</label>
+        <input type="text" id="olKey" placeholder="eyJ… ou sb_publishable_…" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="form-field">
+        <label for="olPage">Adresse de la page de réponse</label>
+        <input type="url" id="olPage" placeholder="https://votre-compte.github.io/presence-hand/reponse.html" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="ol-test" id="olTest"></div>
+      <div class="modal-actions">
+        <button class="hbtn" id="olTestBtn">Tester</button>
+        <button class="hbtn primary" id="olSave">Enregistrer</button>
+      </div>
+    </details>
+
+    <details class="sect" id="sectAccount">
+      <summary>2 · Mon compte coach <span class="sect-state" id="stAccount"></span></summary>
+      <div id="accountBox"></div>
+    </details>
+
+    <details class="sect" id="sectSpace">
+      <summary>3 · Espace partagé <span class="sect-state" id="stSpace"></span></summary>
+      <div id="spaceBox"></div>
+    </details>
+
+    <details class="sect" id="sectBackup">
+      <summary>4 · Sauvegardes en ligne</summary>
+      <div id="backupBox"></div>
+    </details>
+
+    <div class="modal-actions">
+      <button class="hbtn" id="olClose">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modale de choix -->
+<div class="modal-backdrop" id="choiceBackdrop">
+  <div class="modal">
+    <h2 id="choiceTitle"></h2>
+    <p class="help" id="choiceText" style="margin:0 0 14px"></p>
+    <div class="report-cards" id="choiceBtns"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="lib/jspdf.umd.min.js"></script>
+<script>
+(function(){
+  "use strict";
+  const APP_VERSION = "2.2.0";
+  const LOGO_PNG = "data:image/png;base64,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";
+  const $ = s => document.querySelector(s);
+  // Tous les statuts possibles, tous modes confondus
+  const ALL_STATUSES = {
+    present:  { emo:"✅", short:"Présent",  cls:"s-present" },
+    late:     { emo:"⏱", short:"Retard",   cls:"s-late" },
+    excused:  { emo:"✉", short:"Excusé",   cls:"s-excused" },
+    absent:   { emo:"✖", short:"Absent",   cls:"s-absent" },
+    called:   { emo:"📣", short:"Convoqué", cls:"s-called" },
+  };
+
+  // Deux modes : entraînements et matchs. Chacun a ses propres statuts,
+  // sa propre liste de dates et son taux de référence.
+  const MODES = {
+    training: {
+      key:"training", label:"Entraînements", one:"entraînement", oneCap:"Entraînement",
+      order:["present","late","excused","absent"],
+      rateNum:["present","late"],                 // comptés comme "présents effectifs"
+      rateLabel:"Présence",
+      pdfSheetTitle:"Feuille de présence — Entraînement",
+      pdfDetailTitle:"Détail de l'appel",
+      pdfMatrixTitle:"Tableau de présence — Tous les entraînements",
+      pdfPrefix:"presence",
+    },
+    match: {
+      key:"match", label:"Matchs", one:"match", oneCap:"Match",
+      order:["called","present","late","absent"],
+      rateNum:["present","late"],                 // présents le jour du match
+      rateLabel:"Présence",
+      pdfSheetTitle:"Feuille de match",
+      pdfDetailTitle:"Détail de la convocation",
+      pdfMatrixTitle:"Tableau des matchs — Tous les matchs",
+      pdfPrefix:"match",
+    },
+  };
+  let mode = "training";
+  function cfg(){ return MODES[mode]; }
+  // vue dynamique sur les statuts / ordre du mode actif
+  function statusesOfMode(){ const o={}; cfg().order.forEach(k=>o[k]=ALL_STATUSES[k]); return o; }
+
+  const todayISO = () => { const d=new Date(); const p=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; };
+  const fmtFR = iso => { if(!iso) return "—"; const [y,m,d]=iso.split("-"); return `${d}/${m}/${y}`; };
+
+  // Équipes : chaque équipe a son propre effectif, partagé entre les deux modes.
+  // Les présences sont indexées par id de joueur (unique).
+  function uid(prefix){ return (prefix||"")+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+  let teams = [
+    { id:"t1", name:"Équipe 1", players:[
+      {id:"p1", name:"Léa Martin"},
+      {id:"p2", name:"Camille Dubois"},
+      {id:"p3", name:"Manon Petit"},
+      {id:"p4", name:"Chloé Bernard"},
+      {id:"p5", name:"Inès Robert"},
+    ]},
+  ];
+  let currentTeamId = "t1";
+  function currentTeam(){ return teams.find(t=>t.id===currentTeamId) || teams[0] || null; }
+  let players = currentTeam() ? currentTeam().players : [];
+
+  // Deux collections d'événements datés, séparées par mode.
+  // event: { id, date, marks: {playerId: status}, online?: {...} }
+  let eventsByMode = { training: [], match: [] };
+  let currentIdByMode = { training: null, match: null };
+
+  // Salles à domicile, communes à toutes les équipes : { id, name, address }
+  let venues = [];
+  // Réglages de la confirmation en ligne (v2)
+  let online = { url:"", key:"", page:"" };
+  // vues dynamiques sur le mode actif
+  function sessions(){ return eventsByMode[mode]; }
+  function setSessions(arr){ eventsByMode[mode]=arr; }
+  function currentSessionId(){ return currentIdByMode[mode]; }
+  function setCurrentSessionId(id){ currentIdByMode[mode]=id; }
+
+  const pkey = p => p.id;
+  function newSession(date){
+    const id = (mode==="match"?"m":"s")+Date.now()+Math.random().toString(36).slice(2,6);
+    return { id, date: date||todayISO(), marks:{} };
+  }
+  function current(){ return sessions().find(s=>s.id===currentSessionId()) || null; }
+  function selectTeam(id){
+    const t=teams.find(x=>x.id===id); if(!t) return;
+    currentTeamId=id; players=t.players; renderAll();
+  }
+
+  /* ---------- ÉQUIPES ---------- */
+  function renderTeams(){
+    const sel=$("#teamSelect"); if(!sel) return; sel.innerHTML="";
+    if(!teams.length){
+      const o=document.createElement("option"); o.textContent="Aucune équipe"; o.value=""; sel.appendChild(o);
+      sel.disabled=true; return;
+    }
+    sel.disabled=false;
+    teams.forEach(t=>{
+      const o=document.createElement("option"); o.value=t.id;
+      o.textContent=t.name+"  ("+t.players.length+")";
+      if(t.id===currentTeamId) o.selected=true;
+      sel.appendChild(o);
+    });
+  }
+
+  function addTeam(){
+    const name=prompt("Nom de la nouvelle équipe :","Équipe "+(teams.length+1)); if(name===null) return;
+    const nm=name.trim(); if(!nm){ return; }
+    if(teams.some(t=>t.name===nm)){ toast("Ce nom d'équipe existe déjà"); return; }
+    const t={ id:uid("t"), name:nm, players:[] };
+    teams.push(t); currentTeamId=t.id; players=t.players; renderAll();
+    toast("Équipe créée");
+  }
+  function renameTeam(){
+    const t=currentTeam(); if(!t) return;
+    const name=prompt("Renommer l'équipe :", t.name); if(name===null) return;
+    const nm=name.trim(); if(!nm) return;
+    if(teams.some(x=>x!==t && x.name===nm)){ toast("Ce nom d'équipe existe déjà"); return; }
+    t.name=nm; renderAll(); toast("Équipe renommée");
+  }
+  function delTeam(){
+    const t=currentTeam(); if(!t) return;
+    if(teams.length<=1){ toast("Gardez au moins une équipe"); return; }
+    if(!confirm(`Supprimer l'équipe « ${t.name} » et son effectif ?\nLes présences déjà pointées pour ces joueurs seront aussi retirées.`)) return;
+    // nettoyer les présences des joueurs de cette équipe, dans les deux modes
+    const ids=new Set(t.players.map(p=>p.id));
+    [eventsByMode.training, eventsByMode.match].forEach(arr=>arr.forEach(s=>{ Object.keys(s.marks).forEach(k=>{ if(ids.has(k)) delete s.marks[k]; }); }));
+    teams=teams.filter(x=>x!==t);
+    currentTeamId=teams[0].id; players=teams[0].players;
+    renderAll(); toast("Équipe supprimée");
+  }
+
+  /* ---------- RENDER ---------- */
+  function renderOneList(selId, delId, m){
+    const sel=$("#"+selId); if(!sel) return; sel.innerHTML="";
+    const arr=eventsByMode[m];
+    const one = MODES[m].one;
+    if(!arr.length){
+      const o=document.createElement("option"); o.textContent="Aucun "+one+" — appuyez sur +"; o.value=""; sel.appendChild(o);
+      sel.disabled=true; const del=$("#"+delId); if(del) del.style.display="none";
+      return;
+    }
+    sel.disabled=false; const del=$("#"+delId); if(del) del.style.display="";
+    arr.slice().sort((a,b)=>b.date.localeCompare(a.date)).forEach(s=>{
+      const o=document.createElement("option");
+      o.value=s.id;
+      o.textContent=fmtFR(s.date)+(m==="match"&&s.opponent?" — "+s.opponent:"");
+      if(m===mode && s.id===currentIdByMode[m]) o.selected=true;
+      sel.appendChild(o);
+    });
+    // si ce mode n'est pas le mode actif, ne pré-sélectionne rien de "courant" visuellement
+    if(m!==mode){ sel.value = currentIdByMode[m] || (arr[0]?arr[0].id:""); }
+  }
+  function renderSessions(){
+    renderOneList("sessionSelect","delSession","training");
+    renderOneList("matchSelect","delMatch","match");
+    // met en évidence le groupe correspondant au mode actif
+    const gT=$("#sessionSelect").closest(".group");
+    const gM=$("#matchSelect").closest(".group");
+    if(gT) gT.classList.toggle("group-active", mode==="training");
+    if(gM) gM.classList.toggle("group-active", mode==="match");
+  }
+
+  function renderPlayers(){
+    const wrap=$("#players"); wrap.innerHTML="";
+    players.forEach((p,i)=>{
+      const el=document.createElement("div"); el.className="player";
+      el.innerHTML=`<div class="pinfo"><div class="pn" contenteditable="true">${escapeHtml(p.name)}</div></div>
+        <div class="pdel" title="Retirer">✕</div>`;
+      el.querySelector(".pn").onblur=(e)=>{ const nv=e.target.textContent.trim()||"Joueur"; if(players.some(q=>q!==p && q.name===nv)){ toast("Ce nom existe déjà"); e.target.textContent=p.name; return; } if(nv!==p.name){ p.name=nv; renderAll(); } };
+      el.querySelector(".pn").onkeydown=(e)=>{ if(e.key==="Enter"){ e.preventDefault(); e.target.blur(); } };
+      el.querySelector(".pdel").onclick=()=>{ if(confirm(`Retirer ${p.name} de l'effectif ?`)){ players.splice(i,1); renderAll(); } };
+      wrap.appendChild(el);
+    });
+  }
+
+  function renderBoard(){
+    const s=current();
+    $("#seshDate").value = s ? s.date : "";
+    $("#seshDate").disabled = !s;
+    const order=cfg().order;
+    // compteurs par statut du mode
+    const counts={}; order.forEach(k=>counts[k]=0);
+    if(s){ players.forEach(p=>{ const st=s.marks[pkey(p)]; if(st && counts[st]!==undefined) counts[st]++; }); }
+    const wrap=$("#counters"); wrap.innerHTML="";
+    order.forEach(code=>{
+      const st=ALL_STATUSES[code];
+      const el=document.createElement("div"); el.className="counter c-"+code;
+      el.innerHTML=`<div class="v">${counts[code]}</div><div class="k">${st.short}</div>`;
+      wrap.appendChild(el);
+    });
+    // taux
+    let marked=0, attend=0;
+    order.forEach(code=>{ marked+=counts[code]; if(cfg().rateNum.includes(code)) attend+=counts[code]; });
+    // nombre de joueurs pointés (sur l'effectif total)
+    const pointes=document.createElement("div"); pointes.className="counter c-pointed";
+    pointes.innerHTML=`<div class="v">${marked}/${players.length}</div><div class="k">Pointés</div>`;
+    wrap.appendChild(pointes);
+    const rate=document.createElement("div"); rate.className="counter c-rate";
+    rate.innerHTML=`<div class="v">${marked?Math.round(attend/marked*100)+"%":"—"}</div><div class="k">${cfg().rateLabel}</div>`;
+    wrap.appendChild(rate);
+  }
+
+  // Badge de réponse en ligne pour un joueur (mode match, convocation publiée)
+  function respBadgeHtml(s, p){
+    if(mode!=="match" || !s || !s.online || !s.online.publishedAt) return "";
+    const ids=s.online.players||[];
+    if(!ids.includes(p.id)) return "";
+    const r=respOf(s, p.id);
+    if(!r) return ` <span class="rb wait">⏳ En attente</span>`;
+    let h = r.status==="yes" ? ` <span class="rb yes">✅ Confirmé</span>` : ` <span class="rb no">✖ Décliné</span>`;
+    if(r.status==="yes" && s.location==="away"){
+      const t=transportOf(r);
+      if(t==="driver") h+=` <span class="rb">🚗 Conduit${r.seats?" · "+r.seats+" pl.":""}</span>`;
+      else if(t==="direct") h+=` <span class="rb">📍 Direct</span>`;
+      else if(t==="covoit") h+=` <span class="rb">🚐 Covoit.</span>`;
+    }
+    if(r.comment) h+=` <span class="rcmt">« ${escapeHtml(r.comment)} »</span>`;
+    return h;
+  }
+
+  function renderRoll(){
+    const list=$("#rollList"); list.innerHTML="";
+    const s=current();
+    if(!s){ list.innerHTML='<div class="empty-note">Créez ou sélectionnez un '+cfg().one+' pour faire l\'appel.</div>'; $("#rollCount").textContent=""; return; }
+    if(!players.length){ list.innerHTML='<div class="empty-note">Ajoutez des joueurs à l\'effectif.</div>'; $("#rollCount").textContent=""; return; }
+    $("#rollCount").textContent = players.length+" joueur"+(players.length>1?"s":"");
+    const order=cfg().order;
+    players.forEach(p=>{
+      const key=pkey(p); const st=s.marks[key];
+      const row=document.createElement("div");
+      row.className="roll-row"+(st?(" st-"+st):"");
+      const sub = st ? ALL_STATUSES[st].short : "Non pointé";
+      let btns="";
+      order.forEach(code=>{
+        btns+=`<div class="sbtn ${ALL_STATUSES[code].cls}${st===code?" on":""}" data-code="${code}" title="${ALL_STATUSES[code].short}">${ALL_STATUSES[code].emo}</div>`;
+      });
+      row.innerHTML=`<div class="rwho"><div class="rn">${escapeHtml(p.name)}</div><div class="rs">${sub}${respBadgeHtml(s,p)}</div></div>
+        <div class="status-btns">${btns}</div>`;
+      row.querySelectorAll(".sbtn").forEach(b=>{
+        b.onclick=()=>{ const c=b.dataset.code; if(s.marks[key]===c) delete s.marks[key]; else s.marks[key]=c; renderBoard(); renderRoll(); persist(); };
+      });
+      list.appendChild(row);
+    });
+  }
+
+  function sortPlayers(){
+    if(players && players.sort) players.sort((a,b)=>a.name.localeCompare(b.name, "fr", {sensitivity:"base"}));
+  }
+  function renderAll(){ sortPlayers(); renderTeams(); renderModeTabs(); renderSessions(); renderMatchDetails(); renderVenues(); renderPlayers(); renderBoard(); renderRoll(); persist(); }
+
+  /* ---------- SALLES (domicile) ---------- */
+  function renderVenues(){
+    const wrap=$("#venuesList"); if(!wrap) return; wrap.innerHTML="";
+    if(!venues.length){ wrap.innerHTML='<div class="venues-empty">Aucune salle. Appuyez sur +</div>'; return; }
+    venues.forEach((v,i)=>{
+      const el=document.createElement("div"); el.className="venue";
+      el.innerHTML=`<div class="vinfo"><div class="vn">${escapeHtml(v.name)}</div><div class="va">${escapeHtml(v.address||"—")}</div></div>
+        <div class="vedit" title="Modifier">✎</div><div class="vdel" title="Supprimer">✕</div>`;
+      el.querySelector(".vedit").onclick=()=>editVenue(v);
+      el.querySelector(".vdel").onclick=()=>{ if(confirm(`Supprimer la salle « ${v.name} » ?`)){ venues.splice(i,1); renderVenues(); persist(); } };
+      wrap.appendChild(el);
+    });
+  }
+  function addVenue(){
+    const name=prompt("Nom de la salle :","Gymnase "); if(name===null) return;
+    const nm=name.trim(); if(!nm) return;
+    const address=prompt("Adresse complète de la salle :",""); if(address===null) return;
+    venues.push({ id:uid("v"), name:nm, address:address.trim() });
+    renderVenues(); persist(); toast("Salle ajoutée");
+  }
+  function editVenue(v){
+    const name=prompt("Nom de la salle :", v.name); if(name===null) return;
+    const nm=name.trim(); if(!nm) return;
+    const address=prompt("Adresse complète de la salle :", v.address||""); if(address===null) return;
+    v.name=nm; v.address=address.trim();
+    renderVenues(); renderMatchDetails(); persist(); toast("Salle modifiée");
+  }
+
+  function renderMatchDetails(){
+    if(mode!=="match"){ document.body.classList.remove("loc-home","loc-away"); return; }
+    const s=current();
+    const loc = s && s.location ? s.location : "home";
+    $("#locHome").classList.toggle("on", loc==="home");
+    $("#locAway").classList.toggle("on", loc==="away");
+    // classes body pour afficher le bon champ (salle vs adresse)
+    document.body.classList.toggle("loc-home", loc==="home");
+    document.body.classList.toggle("loc-away", loc==="away");
+    $("#mdOpponent").value = s && s.opponent ? s.opponent : "";
+    $("#mdTimeMatch").value = s && s.timeMatch ? s.timeMatch : "";
+    $("#mdTimeMeet").value = s && s.timeMeet ? s.timeMeet : "";
+    $("#mdAddress").value = s && s.awayAddress ? s.awayAddress : "";
+    $("#mdTimeCovoit").value = s && s.timeCovoit ? s.timeCovoit : "";
+    $("#mdMinibus").value = s && s.minibus ? s.minibus : "none";
+    // sélecteur de salle à domicile
+    const sel=$("#mdVenue"); sel.innerHTML="";
+    if(!venues.length){
+      const o=document.createElement("option"); o.value=""; o.textContent="Aucune salle définie (menu)"; sel.appendChild(o); sel.disabled=true;
+    } else {
+      sel.disabled = !s;
+      const o0=document.createElement("option"); o0.value=""; o0.textContent="— Choisir une salle —"; sel.appendChild(o0);
+      venues.forEach(v=>{ const o=document.createElement("option"); o.value=v.id; o.textContent=v.name; if(s&&s.venueId===v.id) o.selected=true; sel.appendChild(o); });
+    }
+    // sélecteur de lieu de covoiturage (mêmes salles domicile)
+    const selC=$("#mdCovoitVenue"); selC.innerHTML="";
+    if(!venues.length){
+      const o=document.createElement("option"); o.value=""; o.textContent="Aucune salle définie (menu)"; selC.appendChild(o); selC.disabled=true;
+    } else {
+      selC.disabled = !s;
+      const o0=document.createElement("option"); o0.value=""; o0.textContent="— Choisir un lieu —"; selC.appendChild(o0);
+      venues.forEach(v=>{ const o=document.createElement("option"); o.value=v.id; o.textContent=v.name; if(s&&s.covoitVenueId===v.id) o.selected=true; selC.appendChild(o); });
+    }
+    const dis = !s;
+    ["mdOpponent","mdTimeMatch","mdTimeMeet","mdAddress","mdTimeCovoit","mdMinibus","locHome","locAway"].forEach(id=>{ const el=$("#"+id); if(el) el.disabled=dis; });
+    renderOnlineStatus(s);
+  }
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+  /* ---------- ACTIONS ---------- */
+  $("#teamSelect").onchange=(e)=>{ selectTeam(e.target.value); };
+  $("#addTeam").onclick=addTeam;
+  $("#renameTeam").onclick=renameTeam;
+  $("#delTeam").onclick=delTeam;
+  $("#addVenue").onclick=addVenue;
+
+  // bascule de mode
+  function renderModeTabs(){
+    $("#tabTraining").classList.toggle("active", mode==="training");
+    $("#tabMatch").classList.toggle("active", mode==="match");
+    $("#rollTitle").firstChild.nodeValue = (mode==="match"?"Convocation ":"Feuille d'appel ");
+    document.body.classList.toggle("mode-match", mode==="match");
+  }
+  function switchMode(m){ if(m!==mode){ mode=m; renderAll(); } }
+  $("#tabTraining").onclick=()=>switchMode("training");
+  $("#tabMatch").onclick=()=>{ switchMode("match"); autoFetch(); };
+
+  $("#addSession").onclick=()=>addEvent("training");
+  $("#addMatch").onclick=()=>addEvent("match");
+  function addEvent(m){
+    switchMode(m); // bascule sur le bon mode
+    const id=(m==="match"?"m":"s")+Date.now()+Math.random().toString(36).slice(2,6);
+    const ev={ id, date: todayISO(), marks:{} };
+    eventsByMode[m].push(ev); currentIdByMode[m]=id; renderAll();
+    toast(m==="match"?"Nouveau match créé":"Nouvel entraînement créé");
+  }
+
+  $("#sessionSelect").onchange=(e)=>{ if(!e.target.value) return; if(mode!=="training") mode="training"; currentIdByMode.training=e.target.value; renderAll(); autoClose(); };
+  $("#matchSelect").onchange=(e)=>{ if(!e.target.value) return; if(mode!=="match") mode="match"; currentIdByMode.match=e.target.value; renderAll(); autoClose(); autoFetch(); };
+
+  $("#delSession").onclick=()=>{ if(currentIdByMode.training) delEvent("training", currentIdByMode.training); };
+  $("#delMatch").onclick=()=>{ if(currentIdByMode.match) delEvent("match", currentIdByMode.match); };
+  function delEvent(m, id){
+    const arr=eventsByMode[m]; const s=arr.find(x=>x.id===id); if(!s) return;
+    if(!confirm(`Supprimer le ${MODES[m].one} du ${fmtFR(s.date)} ?`)) return;
+    // retire aussi la convocation en ligne (et les réponses associées)
+    if(m==="match" && s.online && s.online.publishedAt && onlineReady()){
+      rpc("supprimer_convocation",{ p_id:s.online.id, p_edit_key:s.online.editKey }).catch(()=>{});
+    }
+    eventsByMode[m]=arr.filter(x=>x.id!==id);
+    const rest=eventsByMode[m];
+    if(currentIdByMode[m]===id) currentIdByMode[m]=rest.length?rest[0].id:null;
+    if(mode!==m) switchMode(m); else renderAll();
+    toast(MODES[m].oneCap+" supprimé");
+  }
+  $("#addPlayer").onclick=()=>{
+    if(!currentTeam()){ toast("Créez d'abord une équipe"); return; }
+    const name=prompt("Nom du joueur :","Nouveau joueur"); if(name===null) return;
+    const nm=name.trim()||"Joueur";
+    if(players.some(q=>q.name===nm)){ toast("Ce nom existe déjà"); return; }
+    players.push({id:uid("p"), name:nm}); renderAll();
+  };
+  $("#allPresent").onclick=()=>{
+    const s=current(); if(!s){ toast("Rien à pointer"); return; }
+    players.forEach(p=>{ s.marks[pkey(p)]="present"; }); renderBoard(); renderRoll(); persist();
+    toast("Tous marqués présents");
+  };
+  $("#resetSession").onclick=()=>{
+    const s=current(); if(!s) return;
+    if(confirm("Effacer tous les pointages ?")){ s.marks={}; renderBoard(); renderRoll(); persist(); toast("Pointages effacés"); }
+  };
+  $("#seshDate").onchange=(e)=>{ const s=current(); if(s&&e.target.value){ s.date=e.target.value; renderSessions(); persist(); toast("Date modifiée"); } };
+
+  /* ---------- DÉTAILS MATCH ---------- */
+  $("#locHome").onclick=()=>{ const s=current(); if(!s) return; s.location="home"; renderMatchDetails(); persist(); };
+  $("#locAway").onclick=()=>{ const s=current(); if(!s) return; s.location="away"; renderMatchDetails(); persist(); };
+  $("#mdOpponent").oninput=(e)=>{ const s=current(); if(s){ s.opponent=e.target.value; persist(); } };
+  $("#mdOpponent").onchange=()=>renderSessions();
+  $("#mdTimeMatch").onchange=(e)=>{ const s=current(); if(s){ s.timeMatch=e.target.value; persist(); } };
+  $("#mdTimeMeet").onchange=(e)=>{ const s=current(); if(s){ s.timeMeet=e.target.value; persist(); } };
+  $("#mdVenue").onchange=(e)=>{ const s=current(); if(s){ s.venueId=e.target.value||null; persist(); } };
+  $("#mdAddress").oninput=(e)=>{ const s=current(); if(s){ s.awayAddress=e.target.value; persist(); } };
+  $("#mdTimeCovoit").onchange=(e)=>{ const s=current(); if(s){ s.timeCovoit=e.target.value; persist(); } };
+  $("#mdCovoitVenue").onchange=(e)=>{ const s=current(); if(s){ s.covoitVenueId=e.target.value||null; persist(); } };
+  $("#mdMinibus").onchange=(e)=>{ const s=current(); if(s){ s.minibus=e.target.value; persist(); } };
+
+  $("#shareConvoc").onclick=shareConvocation;
+  $("#refreshResp").onclick=()=>{ const s=current(); fetchResponses(s,false); };
+  $("#relanceBtn").onclick=relance;
+
+  const mapLink = adr => "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(adr);
+  function minibusText(s){
+    return s.minibus==="one"
+      ? "Nous disposons d'un seul mini bus."
+      : s.minibus==="many"
+      ? "Nous disposons de deux mini bus. Nous avons besoin d'un chauffeur pour le second mini bus."
+      : "Nous ne disposons pas de mini bus pour ce déplacement.";
+  }
+  // joueurs retenus = statut "called" ou "present"
+  function retenusOf(s){ return players.filter(p=>{ const st=s.marks[pkey(p)]; return st==="called"||st==="present"; }); }
+
+  async function shareConvocation(){
+    const s=current();
+    if(!s){ toast("Aucun match sélectionné"); return; }
+    const isHome = s.location!=="away";
+    const retenus = retenusOf(s);
+
+    // v2 : publication en ligne pour obtenir un lien de confirmation
+    let link = "";
+    if(onlineReady()){
+      if(!retenus.length){ toast("Convoquez au moins un joueur (📣) avant de partager"); return; }
+      toast("Publication de la convocation…");
+      try{
+        await publishConvocation(s, retenus);
+        link = convocLink(s);
+        renderMatchDetails(); renderRoll();
+      }catch(e){
+        if(!confirm("La convocation n'a pas pu être publiée en ligne ("+shortErr(e)+").\nPartager quand même sans lien de confirmation ?")) return;
+      }
+    }
+
+    const lines=[];
+    lines.push("CONVOCATION");
+    if(s.opponent) lines.push("Contre : "+s.opponent);
+    lines.push("Date : "+fmtFR(s.date));
+    if(isHome){
+      const v = venues.find(x=>x.id===s.venueId);
+      lines.push("Lieu : Domicile"+(v?" — "+v.name:""));
+      if(v && v.address) lines.push("Adresse : "+mapLink(v.address));
+    } else {
+      lines.push("Lieu : Extérieur");
+      if(s.awayAddress) lines.push("Adresse : "+mapLink(s.awayAddress));
+    }
+    if(isHome){
+      if(s.timeMeet) lines.push("*Heure du RDV : "+s.timeMeet+"*");
+      if(s.timeMatch) lines.push("Heure du match : "+s.timeMatch);
+    } else {
+      if(s.timeMeet) lines.push("Heure du RDV (sur place) : "+s.timeMeet);
+      if(s.timeMatch) lines.push("Heure du match : "+s.timeMatch);
+    }
+    // Covoiturage (matchs à l'extérieur uniquement)
+    if(!isHome){
+      const cv = venues.find(x=>x.id===s.covoitVenueId);
+      if(s.timeCovoit || cv || s.minibus){
+        lines.push("");
+        lines.push("Covoiturage :");
+        if(s.timeCovoit) lines.push("*- Heure de RDV : "+s.timeCovoit+"*");
+        if(cv) lines.push("- Lieu : "+cv.name);
+        lines.push("- "+minibusText(s));
+      }
+    }
+    lines.push("");
+    if(retenus.length){
+      lines.push("Joueurs convoqués :");
+      retenus.forEach(p=>lines.push("- "+p.name));
+    } else {
+      lines.push("(Aucun joueur convoqué pour l'instant)");
+    }
+    if(isHome){
+      lines.push("");
+      lines.push("Pensez à ramener à boire et/ou un goûter.");
+    }
+    lines.push("");
+    if(link){
+      lines.push("*👉 Merci de confirmer la présence ici :*");
+      if(!isHome) lines.push("(précisez aussi : covoiturage, direct sur place, ou si vous pouvez conduire)");
+      lines.push(link);
+    } else {
+      lines.push("Merci de confirmer la présence");
+    }
+    shareText(lines.join("\n"));
+  }
+
+  // Partage texte : natif (feuille Android, dont WhatsApp) ou repli navigateur
+  async function shareText(text){
+    const cap=window.Capacitor;
+    const isNative=!!(cap && (cap.isNativePlatform?cap.isNativePlatform():cap.isNative));
+    if(isNative){
+      try{
+        const ready=await capReady(4000);
+        const P=(cap&&cap.Plugins)||{};
+        if(ready && P.Share){
+          await P.Share.share({ title:"Convocation", text, dialogTitle:"Envoyer la convocation" });
+          return;
+        }
+      }catch(err){
+        const m=(err&&err.message)||String(err||""); if(/cancel/i.test(m)) return;
+      }
+    }
+    // repli : Web Share API (navigateur mobile) sinon WhatsApp web, sinon copie
+    try{
+      if(navigator.share){ await navigator.share({ text }); return; }
+    }catch(e){ if(/abort/i.test(String(e))) return; }
+    let w=null;
+    try{ w=window.open("https://wa.me/?text="+encodeURIComponent(text), "_blank"); }catch(e){ w=null; }
+    if(!w){
+      try{ await navigator.clipboard.writeText(text); toast("Message copié : collez-le dans WhatsApp"); }
+      catch(_){ toast("Partage indisponible"); }
+    }
+  }
+
+  /* ---------- CONVOCATION EN LIGNE (v2 · Supabase) ---------- */
+  function onlineReady(){ return !!(online.url && online.key && online.page); }
+  function newUUID(){
+    if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    const b=new Uint8Array(16); crypto.getRandomValues(b); b[6]=(b[6]&15)|64; b[8]=(b[8]&63)|128;
+    const h=Array.from(b).map(x=>x.toString(16).padStart(2,"0")).join("");
+    return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
+  }
+  function shortErr(e){ const m=(e&&e.message)||String(e||""); return /abort/i.test(m)?"délai dépassé":(m.length>80?m.slice(0,80)+"…":m); }
+  async function rpc(fn, body, conf){
+    const c=conf||online;
+    const headers={ "Content-Type":"application/json", "apikey":c.key };
+    let tok=null;
+    if(!conf && cloud.session){ try{ tok=await ensureToken(); }catch(_){ tok=null; } }   // coach connecté
+    if(tok) headers.Authorization="Bearer "+tok;
+    else if(/^eyJ/.test(c.key)) headers.Authorization="Bearer "+c.key;   // ancienne clé "anon" (JWT)
+    const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(),12000);
+    try{
+      const r=await fetch(c.url.replace(/\/+$/,"")+"/rest/v1/rpc/"+fn,{ method:"POST", headers, body:JSON.stringify(body||{}), signal:ctrl.signal });
+      const txt=await r.text();
+      if(!r.ok){ let m=txt; try{ m=JSON.parse(txt).message||txt; }catch(_){} throw new Error(m||("HTTP "+r.status)); }
+      return txt?JSON.parse(txt):null;
+    } finally { clearTimeout(t); }
+  }
+  // RGPD : on ne publie que le prénom + l'initiale du nom
+  function shortName(n){
+    const parts=String(n).trim().split(/\s+/);
+    if(parts.length<2) return parts[0]||"Joueur";
+    return parts[0]+" "+parts[parts.length-1].charAt(0).toUpperCase()+".";
+  }
+  function convocLink(s){ return online.page+(online.page.includes("?")?"&":"?")+"c="+s.online.id; }
+  // mode de transport (matchs à l'extérieur) ; ancienne réponse avec places => conducteur
+  function transportOf(r){ return r ? (r.transport || (r.seats ? "driver" : "")) : ""; }
+  function respOf(s, pid){ return (s && s.online && s.online.responses || []).find(r=>r.player_id===pid) || null; }
+
+  function buildConvocData(s, retenus){
+    const isHome=s.location!=="away";
+    const v=venues.find(x=>x.id===s.venueId);
+    const cv=venues.find(x=>x.id===s.covoitVenueId);
+    return {
+      v:1,
+      team: currentTeam()?currentTeam().name:"",
+      opponent: s.opponent||"",
+      date: s.date,
+      home: isHome,
+      venue: isHome && v ? v.name : "",
+      address: isHome ? ((v&&v.address)||"") : (s.awayAddress||""),
+      timeMatch: s.timeMatch||"",
+      timeMeet: s.timeMeet||"",
+      covoit: isHome ? null : { time:s.timeCovoit||"", place: cv?cv.name:"", placeAddress: cv?(cv.address||""):"", minibus: minibusText(s) },
+      players: retenus.map(p=>({ id:p.id, name:shortName(p.name) })),
+    };
+  }
+
+  async function publishConvocation(s, retenus){
+    if(!s.online || !s.online.id) s.online={ id:newUUID(), editKey:newUUID() };
+    await rpc("publier_convocation",{ p_id:s.online.id, p_edit_key:s.online.editKey, p_data:buildConvocData(s,retenus), p_match_date:s.date });
+    s.online.publishedAt=new Date().toISOString();
+    s.online.players=retenus.map(p=>p.id);
+    s.online.missing=false;
+    // on garde les réponses déjà reçues des joueurs toujours convoqués
+    s.online.responses=(s.online.responses||[]).filter(r=>s.online.players.includes(r.player_id));
+    persist();
+  }
+
+  let fetching=false;
+  async function fetchResponses(s, silent){
+    if(!s || !s.online || !s.online.publishedAt){ if(!silent) toast("Partagez d'abord la convocation"); return false; }
+    if(!onlineReady()){ if(!silent) toast("Confirmation en ligne non configurée (🌐)"); return false; }
+    if(fetching) return false; fetching=true;
+    try{
+      const res=await rpc("get_convocation",{ p_id:s.online.id });
+      if(!res){
+        s.online.missing=true;
+        if(!silent) toast("Convocation en ligne introuvable (expirée ?) — repartagez-la");
+      } else {
+        s.online.missing=false;
+        s.online.responses=res.reponses||[];
+        s.online.players=((res.data&&res.data.players)||[]).map(p=>p.id);
+        s.online.fetchedAt=new Date().toISOString();
+        if(!silent){ const n=s.online.responses.length; toast(n+" réponse"+(n>1?"s":"")+" sur "+s.online.players.length); }
+      }
+      persist();
+      if(current()===s){ renderMatchDetails(); renderRoll(); }
+      return true;
+    }catch(e){
+      if(!silent) toast("Réponses indisponibles : "+shortErr(e));
+      return false;
+    }finally{ fetching=false; }
+  }
+  function autoFetch(){
+    if(mode!=="match") return;
+    const s=current();
+    if(s && s.online && s.online.publishedAt && onlineReady()) fetchResponses(s,true);
+  }
+  // au retour dans l'app (après WhatsApp par ex.), on rafraîchit les réponses
+  document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") autoFetch(); });
+
+  function hhmm(iso){ try{ const d=new Date(iso); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }catch(_){ return ""; } }
+
+  function renderOnlineStatus(s){
+    const el=$("#mdOnline"); if(!el) return;
+    if(!s){ el.innerHTML=""; return; }
+    if(!onlineReady()){
+      el.innerHTML='🌐 Confirmation en ligne non configurée · <a id="mdOnlineCfg">configurer</a>';
+      $("#mdOnlineCfg").onclick=openOnline; return;
+    }
+    if(!s.online || !s.online.publishedAt){
+      el.innerHTML='🌐 Pas encore publiée : « Partager la convocation » ajoutera le lien de confirmation au message.'; return;
+    }
+    if(s.online.missing){
+      el.innerHTML='⚠️ Convocation en ligne introuvable (expirée ou supprimée) : repartagez-la pour recréer le lien.'; return;
+    }
+    const ids=s.online.players||[];
+    const rs=(s.online.responses||[]).filter(r=>ids.includes(r.player_id));
+    const yes=rs.filter(r=>r.status==="yes"), no=rs.filter(r=>r.status==="no");
+    const wait=ids.length-yes.length-no.length;
+    const drv=yes.filter(r=>transportOf(r)==="driver");
+    const seats=drv.reduce((a,r)=>a+(r.seats||0),0);
+    const need=yes.filter(r=>transportOf(r)==="covoit").length;
+    const direct=yes.filter(r=>transportOf(r)==="direct").length;
+    const bal=seats-need;
+    let h=`<span>🌐 Réponses :</span>
+      <span class="oc yes">✅ ${yes.length}</span>
+      <span class="oc no">✖ ${no.length}</span>
+      <span class="oc wait">⏳ ${wait}</span>`;
+    if(s.location==="away") h+=`<span class="oc" title="Enfants à emmener au RDV covoiturage">🚐 ${need} à emmener</span>
+      <span class="oc" title="Places proposées par les parents conducteurs">🚗 ${drv.length} cond. · ${seats} pl.</span>
+      <span class="oc" title="Vont directement sur place">📍 ${direct} direct</span>
+      <span class="oc ${bal>=0?"yes":"no"}">${bal>=0?"✓ places OK":"⚠ manque "+(-bal)+" pl."}</span>`;
+    h+=`<span>${s.online.fetchedAt?"· MàJ "+hhmm(s.online.fetchedAt):""}</span>
+      <a id="mdCopyLink">Copier le lien</a>
+      <span>· Après une modification du match, repartagez pour mettre la page à jour.</span>`;
+    el.innerHTML=h;
+    $("#mdCopyLink").onclick=async()=>{
+      const l=convocLink(s);
+      try{ await navigator.clipboard.writeText(l); toast("Lien copié"); }catch(_){ prompt("Lien de confirmation :", l); }
+    };
+  }
+
+  async function relance(){
+    const s=current();
+    if(!s || !s.online || !s.online.publishedAt){ toast("Partagez d'abord la convocation"); return; }
+    await fetchResponses(s,true);
+    const ids=s.online.players||[];
+    const answered=new Set((s.online.responses||[]).map(r=>r.player_id));
+    const missing=players.filter(p=>ids.includes(p.id) && !answered.has(p.id));
+    if(!missing.length){ toast("Tout le monde a répondu 👍"); return; }
+    const lines=[];
+    lines.push("🔔 RAPPEL — Convocation"+(s.opponent?" contre "+s.opponent:"")+" du "+fmtFR(s.date));
+    lines.push("");
+    lines.push("Pas encore de réponse pour :");
+    missing.forEach(p=>lines.push("- "+p.name));
+    lines.push("");
+    lines.push("*👉 Merci de répondre ici :*");
+    lines.push(convocLink(s));
+    shareText(lines.join("\n"));
+  }
+
+
+  /* ---------- BILAN ---------- */
+  function openStats(){
+    const order=cfg().order;
+    $("#statsTitle").textContent = "📊 Bilan par joueur — "+cfg().label;
+    // en-tête dynamique
+    const head=$("#statsHead");
+    head.innerHTML='<th>Joueur</th>'+order.map(c=>`<th style="text-align:center">${ALL_STATUSES[c].short}</th>`).join('')+'<th style="text-align:center">%</th>';
+    const body=$("#statsBody"); body.innerHTML="";
+    const arr=sessions();
+    if(!arr.length){ body.innerHTML=`<tr><td colspan="${order.length+2}" style="color:var(--muted);font-style:italic;text-align:center;padding:18px">Aucun ${cfg().one} enregistré.</td></tr>`; }
+    else {
+      players.forEach(p=>{
+        const key=pkey(p); const counts={}; order.forEach(c=>counts[c]=0); let tot=0, attend=0;
+        arr.forEach(s=>{ const st=s.marks[key]; if(st && counts[st]!==undefined){ counts[st]++; tot++; if(cfg().rateNum.includes(st)) attend++; } });
+        const rate = tot ? Math.round(attend/tot*100) : null;
+        const rcls = rate===null?"":(rate>=80?"rate-good":rate>=50?"rate-mid":"rate-bad");
+        const tr=document.createElement("tr");
+        tr.innerHTML=`<td>${escapeHtml(p.name)}</td>`
+          + order.map(c=>`<td class="n">${counts[c]}</td>`).join('')
+          + `<td class="n ${rcls}">${rate===null?"—":rate+"%"}</td>`;
+        body.appendChild(tr);
+      });
+    }
+    $("#statsBackdrop").classList.add("show");
+  }
+  $("#statsBtn").onclick=openStats;
+  $("#statsClose").onclick=()=>$("#statsBackdrop").classList.remove("show");
+  $("#statsBackdrop").onclick=(e)=>{ if(e.target===$("#statsBackdrop")) $("#statsBackdrop").classList.remove("show"); };
+
+  /* ---------- PDF ---------- */
+  const INK=[29,43,58], MUTED=[143,166,184];
+
+  function pdfHeader(doc, title, sub){
+    const M=40;
+    // logo ATILems (PNG), 36x36 pt, aligné avec le titre
+    try{ doc.addImage(LOGO_PNG, "PNG", M, M-2, 36, 36); }
+    catch(e){ // repli : dessin vectoriel si l'image échoue
+      doc.setFillColor(13,92,156); doc.circle(M+16,M+16,16,"F");
+      doc.setFillColor(255,255,255); doc.triangle(M+2,M+40, M+16,M+2, M+30,M+40,"F");
+    }
+    doc.setFont("helvetica","bold"); doc.setFontSize(18); doc.setTextColor(...INK);
+    doc.text(title, M+46, M+14);
+    doc.setFont("helvetica","normal"); doc.setFontSize(11); doc.setTextColor(...MUTED);
+    doc.text(sub, M+46, M+30);
+    return M+64;
+  }
+
+  function pdfFooter(doc){
+    const M=40, W=doc.internal.pageSize.getWidth();
+    const year=new Date().getFullYear();
+    const pages=doc.internal.getNumberOfPages();
+    for(let i=1;i<=pages;i++){
+      doc.setPage(i); const hh=doc.internal.pageSize.getHeight();
+      doc.setDrawColor(...MUTED); doc.setLineWidth(.5); doc.line(M,hh-30,W-M,hh-30);
+      doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...MUTED);
+      doc.text("© "+year+" ATILems — Tous droits réservés", M, hh-16);
+      doc.text("Page "+i+" / "+pages, W-M, hh-16, {align:"right"});
+    }
+  }
+
+  // Attend que le pont natif Capacitor soit prêt (plugins injectés)
+  function capReady(timeout){
+    return new Promise(resolve=>{
+      const cap=window.Capacitor;
+      const ok=()=> cap && cap.Plugins && cap.Plugins.Filesystem && cap.Plugins.Share;
+      if(ok()) return resolve(true);
+      const t0=Date.now();
+      const iv=setInterval(()=>{
+        if(ok()){ clearInterval(iv); resolve(true); }
+        else if(Date.now()-t0>timeout){ clearInterval(iv); resolve(false); }
+      },80);
+    });
+  }
+
+  async function pdfSave(doc, prefix){
+    const p=n=>String(n).padStart(2,"0"); const d=new Date();
+    const fname=`${prefix}_${p(d.getHours())}-${p(d.getMinutes())}.pdf`;
+    const cap = window.Capacitor;
+    const isNative = !!(cap && (cap.isNativePlatform ? cap.isNativePlatform() : cap.isNative));
+
+    // --- Cas navigateur (ordinateur) : téléchargement classique ---
+    if(!isNative){
+      doc.save(fname);
+      toast("Rapport PDF téléchargé");
+      return;
+    }
+
+    // --- Cas mobile (app Android) : enregistrer puis ouvrir le partage ---
+    toast("Préparation du partage…");
+    try{
+      const ready = await capReady(4000);
+      const P = (cap && cap.Plugins) || {};
+
+      if(ready && P.Filesystem && P.Share){
+        const base64 = doc.output("datauristring").split(",")[1];
+        const res = await P.Filesystem.writeFile({ path: fname, data: base64, directory: "CACHE" });
+        const uri = res && res.uri ? res.uri : null;
+        try{
+          await P.Share.share({
+            title: "Rapport de présence — ATILems",
+            text: "Rapport : "+fname,
+            files: uri ? [uri] : undefined,
+            url: uri || undefined,
+            dialogTitle: "Partager / enregistrer le rapport"
+          });
+          toast("Rapport prêt");
+        }catch(err){
+          const m=(err&&err.message)||String(err||"");
+          if(/cancel/i.test(m)) return;   // partage fermé par l'utilisateur : normal
+          toast("Partage annulé");
+        }
+        return;
+      }
+
+      // Plugins indisponibles : repli
+      openFallback(doc, fname);
+    }catch(err){
+      openFallback(doc, fname);
+    }
+  }
+
+  // Repli universel : tente d'ouvrir le PDF pour visualisation/enregistrement
+  function openFallback(doc, fname){
+    try{
+      const blob = doc.output("blob");
+      const url = URL.createObjectURL(blob);
+      const w = window.open(url, "_blank");
+      if(!w){
+        const a=document.createElement("a");
+        a.href=url; a.download=fname; a.target="_blank";
+        document.body.appendChild(a); a.click(); a.remove();
+      }
+      setTimeout(()=>URL.revokeObjectURL(url), 60000);
+    }catch(e){
+      toast("Impossible d'ouvrir le PDF");
+    }
+  }
+
+  // ---- Rapport 1 : feuille de l'événement sélectionné (mode actif) ----
+  function buildSessionPDF(){
+    const s=current();
+    if(!s){ toast("Aucun "+cfg().one+" sélectionné"); return; }
+    const { jsPDF } = window.jspdf;
+    const doc=new jsPDF({unit:"pt", format:"a4"});
+    const M=40, W=doc.internal.pageSize.getWidth();
+    let y=pdfHeader(doc, cfg().pdfSheetTitle, `${cfg().oneCap} du ${fmtFR(s.date)} — ${currentTeam()?currentTeam().name:""}`);
+
+    // Infos match (lieu, adversaire, heures)
+    if(mode==="match"){
+      const info=[];
+      const isHome = s.location!=="away";
+      info.push(["Lieu", isHome?"Domicile":"Extérieur"]);
+      if(s.opponent) info.push(["Adversaire", s.opponent]);
+      if(isHome){
+        const v = venues.find(x=>x.id===s.venueId);
+        if(v){ info.push(["Salle", v.name]); if(v.address) info.push(["Adresse", v.address]); }
+      } else if(s.awayAddress){
+        info.push(["Adresse", s.awayAddress]);
+      }
+      if(s.timeMatch) info.push(["Heure du match", s.timeMatch]);
+      if(s.timeMeet) info.push(["Heure du RDV", s.timeMeet]);
+      doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(...INK);
+      doc.text("Informations", M, y); y+=8;
+      autoTable(doc, y, ["Détail","Valeur"], info, [W*0.55, W-2*M-W*0.55]);
+      y=doc.lastAutoY+26;
+    }
+
+    const order=cfg().order;
+    const counts={}; order.forEach(c=>counts[c]=0); let marked=0, attend=0;
+    players.forEach(p=>{ const st=s.marks[pkey(p)]; if(st && counts[st]!==undefined){ counts[st]++; marked++; if(cfg().rateNum.includes(st)) attend++; } });
+    const rate=marked?Math.round(attend/marked*100):0;
+
+    doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(...INK);
+    doc.text("Synthèse", M, y); y+=8;
+    const synth=[["Effectif total", String(players.length)]];
+    order.forEach(c=>synth.push([ALL_STATUSES[c].short, String(counts[c])]));
+    synth.push([cfg().rateLabel+" (taux)", rate+" %"]);
+    autoTable(doc, y, ["Indicateur","Valeur"], synth, [W*0.55, W-2*M-W*0.55]);
+    y=doc.lastAutoY+26;
+
+    if(y > doc.internal.pageSize.getHeight()-160){ doc.addPage(); y=M; }
+    doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(...INK);
+    doc.text(cfg().pdfDetailTitle, M, y); y+=8;
+    // v2 : colonne "Réponse en ligne" si la convocation a été publiée
+    const withResp = mode==="match" && s.online && s.online.publishedAt;
+    const ids = withResp ? (s.online.players||[]) : [];
+    const rows=players.map(p=>{
+      const st=s.marks[pkey(p)];
+      const row=[p.name, st?ALL_STATUSES[st].short:"Non pointé"];
+      if(withResp){
+        if(!ids.includes(p.id)) row.push("—");
+        else {
+          const r=respOf(s,p.id);
+          if(!r) row.push("En attente");
+          else if(r.status!=="yes") row.push("Décliné");
+          else {
+            const t = s.location==="away" ? transportOf(r) : "";
+            row.push("Confirmé"+(t==="driver"?" · conduit"+(r.seats?" ("+r.seats+" pl.)":""):t==="direct"?" · direct":t==="covoit"?" · covoiturage":""));
+          }
+        }
+      }
+      return row;
+    });
+    if(!rows.length) rows.push(withResp?["Aucun joueur","",""]:["Aucun joueur",""]);
+    if(withResp) autoTable(doc, y, ["Joueur","Statut","Réponse en ligne"], rows, [W*0.40, W*0.20, W-2*M-W*0.60]);
+    else autoTable(doc, y, ["Joueur","Statut"], rows, [W*0.62, W-2*M-W*0.62]);
+
+    pdfFooter(doc);
+    pdfSave(doc, `${cfg().pdfPrefix}-${s.date}`);
+  }
+
+  // ---- Rapport 2 : suivi d'un joueur dans le temps (mode actif) ----
+  function buildPlayerPDF(player){
+    if(!player){ toast("Aucun joueur choisi"); return; }
+    const arr=sessions();
+    if(!arr.length){ toast("Aucun "+cfg().one+" enregistré"); return; }
+    const { jsPDF } = window.jspdf;
+    const doc=new jsPDF({unit:"pt", format:"a4"});
+    const M=40, W=doc.internal.pageSize.getWidth();
+    let y=pdfHeader(doc, "Suivi — "+cfg().label, player.name+" — "+(currentTeam()?currentTeam().name:""));
+
+    const order=cfg().order;
+    const key=pkey(player);
+    const sorted=arr.slice().sort((a,b)=>a.date.localeCompare(b.date));
+    const counts={}; order.forEach(c=>counts[c]=0); let tot=0, attend=0;
+    const rows=sorted.map(s=>{
+      const st=s.marks[key];
+      if(st && counts[st]!==undefined){ counts[st]++; tot++; if(cfg().rateNum.includes(st)) attend++; }
+      return [fmtFR(s.date), st?ALL_STATUSES[st].short:"Non pointé"];
+    });
+    const rate = tot ? Math.round(attend/tot*100) : 0;
+
+    doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(...INK);
+    doc.text("Synthèse", M, y); y+=8;
+    const synth=[[cfg().label+" pointés", String(tot)+" / "+arr.length]];
+    order.forEach(c=>synth.push([ALL_STATUSES[c].short, String(counts[c])]));
+    synth.push([cfg().rateLabel+" (taux)", rate+" %"]);
+    autoTable(doc, y, ["Indicateur","Valeur"], synth, [W*0.55, W-2*M-W*0.55]);
+    y=doc.lastAutoY+26;
+
+    if(y > doc.internal.pageSize.getHeight()-160){ doc.addPage(); y=M; }
+    doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(...INK);
+    doc.text("Historique — "+cfg().label, M, y); y+=8;
+    if(!rows.length) rows.push(["Aucune date",""]);
+    autoTable(doc, y, ["Date","Statut"], rows, [W*0.5, W-2*M-W*0.5]);
+
+    pdfFooter(doc);
+    const safe=player.name.replace(/[^a-z0-9]+/gi,"-").toLowerCase();
+    pdfSave(doc, `suivi-${cfg().pdfPrefix}-${safe}`);
+  }
+
+  // ---- Rapport 3 : tableau global joueurs × dates (paysage, mode actif) ----
+  function buildMatrixPDF(){
+    const arr=sessions();
+    if(!arr.length){ toast("Aucun "+cfg().one+" enregistré"); return; }
+    if(!players.length){ toast("Aucun joueur"); return; }
+    const { jsPDF } = window.jspdf;
+    const doc=new jsPDF({unit:"pt", format:"a4", orientation:"landscape"});
+    const M=40, W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight();
+    let y=pdfHeader(doc, cfg().pdfMatrixTitle, `${currentTeam()?currentTeam().name+" · ":""}${players.length} joueurs · ${arr.length} ${cfg().label.toLowerCase()}`);
+
+    const sorted=arr.slice().sort((a,b)=>a.date.localeCompare(b.date));
+    // abréviations et couleurs par statut (tous statuts connus)
+    const ABBR={present:"P", late:"R", excused:"E", absent:"A", called:"C"};
+    const ATCOL={present:[42,157,143], late:[233,196,106], excused:[244,162,97], absent:[230,57,70], called:[86,207,225]};
+    const order=cfg().order;
+
+    const nameW=Math.min(150, Math.max(90, W*0.18));
+    const rateW=42;
+    const gridW=W-2*M-nameW-rateW;
+    const dateW=gridW/sorted.length;
+    const headH=42, rowH=18;
+
+    function drawHeader(yTop){
+      doc.setFillColor(20,34,48); doc.rect(M,yTop,W-2*M,headH,"F");
+      doc.setTextColor(255,255,255);
+      doc.setFont("helvetica","bold"); doc.setFontSize(9);
+      doc.text("Joueur", M+6, yTop+headH-6);
+      doc.setFontSize(7.5);
+      sorted.forEach((s,i)=>{
+        const cx=M+nameW+dateW*i+dateW/2;
+        const [y4,m,d2]=s.date.split("-");
+        doc.text(`${d2}/${m}`, cx, yTop+headH-6, {align:"center"});
+      });
+      doc.setFontSize(8);
+      doc.text("%", M+nameW+gridW+rateW/2, yTop+headH-6, {align:"center"});
+      return yTop+headH;
+    }
+
+    y=drawHeader(y);
+    doc.setFont("helvetica","normal");
+    players.forEach((p,ri)=>{
+      if(y+rowH > H-40){ doc.addPage(); y=M; y=drawHeader(y); doc.setFont("helvetica","normal"); }
+      const key=pkey(p);
+      if(ri%2===0){ doc.setFillColor(238,242,246); doc.rect(M,y,W-2*M,rowH,"F"); }
+      // nom
+      doc.setTextColor(...INK); doc.setFontSize(8.5);
+      let nm=p.name; while(doc.getTextWidth(nm)>nameW-10 && nm.length>3){ nm=nm.slice(0,-1); }
+      doc.text(nm, M+6, y+rowH-5);
+      // cellules
+      let attend=0,tot=0;
+      const dark = new Set(["late","excused","called"]); // fonds clairs -> texte sombre
+      sorted.forEach((s,i)=>{
+        const st=s.marks[key];
+        const cx=M+nameW+dateW*i;
+        if(st){
+          tot++; if(cfg().rateNum.includes(st)) attend++;
+          const col=ATCOL[st]||[150,150,150];
+          doc.setFillColor(...col); doc.rect(cx+1,y+2,dateW-2,rowH-4,"F");
+          if(dark.has(st)) doc.setTextColor(40,30,20); else doc.setTextColor(255,255,255);
+          doc.setFontSize(7.5); doc.setFont("helvetica","bold");
+          doc.text(ABBR[st]||"?", cx+dateW/2, y+rowH-5, {align:"center"});
+          doc.setFont("helvetica","normal");
+        }
+      });
+      // %
+      const rate=tot?Math.round(attend/tot*100):null;
+      doc.setTextColor(...INK); doc.setFontSize(8);
+      doc.text(rate===null?"—":rate+"%", M+nameW+gridW+rateW/2, y+rowH-5, {align:"center"});
+      y+=rowH;
+    });
+    // cadre
+    doc.setDrawColor(200,210,220); doc.setLineWidth(.5);
+
+    // légende (statuts du mode actif)
+    y+=14;
+    if(y>H-40){ doc.addPage(); y=M; }
+    doc.setFontSize(8.5); doc.setTextColor(...INK); doc.setFont("helvetica","bold");
+    doc.text("Légende :", M, y);
+    doc.setFont("helvetica","normal");
+    let lx=M+52;
+    order.forEach(code=>{
+      const col=ATCOL[code]||[150,150,150];
+      doc.setFillColor(...col); doc.rect(lx,y-8,10,10,"F");
+      doc.setTextColor(...INK); doc.text(`${ABBR[code]} = ${ALL_STATUSES[code].short}`, lx+14, y);
+      lx+=112;
+    });
+
+    pdfFooter(doc);
+    pdfSave(doc, `tableau-${cfg().pdfPrefix}`);
+  }
+
+  function autoTable(doc, startY, headers, rows, colW){
+    const M=40, W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight();
+    const rowH=20, headH=22; let y=startY;
+    doc.setFillColor(20,34,48); doc.rect(M,y,W-2*M,headH,"F");
+    doc.setFont("helvetica","bold"); doc.setFontSize(9.5); doc.setTextColor(255,255,255);
+    let cx=M+6; headers.forEach((h,i)=>{ doc.text(String(h),cx,y+15); cx+=colW[i]; });
+    y+=headH;
+    doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(29,43,58);
+    rows.forEach((r,ri)=>{
+      if(y+rowH > H-40){ doc.addPage(); y=M;
+        doc.setFillColor(20,34,48); doc.rect(M,y,W-2*M,headH,"F");
+        doc.setFont("helvetica","bold"); doc.setFontSize(9.5); doc.setTextColor(255,255,255);
+        let hx=M+6; headers.forEach((h,i)=>{ doc.text(String(h),hx,y+15); hx+=colW[i]; });
+        y+=headH; doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(29,43,58);
+      }
+      if(ri%2===0){ doc.setFillColor(238,242,246); doc.rect(M,y,W-2*M,rowH,"F"); }
+      let px=M+6; r.forEach((c,i)=>{ doc.text(String(c),px,y+14); px+=colW[i]; });
+      y+=rowH;
+    });
+    doc.setDrawColor(200,210,220); doc.setLineWidth(.5); doc.rect(M,startY,W-2*M,y-startY);
+    doc.lastAutoY=y;
+  }
+
+  // ---- Modale de choix de rapport ----
+  function openPdfModal(){
+    const sel=$("#repPlayerSelect"); sel.innerHTML="";
+    players.forEach((p,i)=>{ const o=document.createElement("option"); o.value=i; o.textContent=p.name; sel.appendChild(o); });
+    $("#repPlayerPick").classList.remove("show");
+    $("#repPlayer").querySelector(".rc-d").textContent="L'historique de présence d'un joueur sur tous les entraînements.";
+    $("#pdfBackdrop").classList.add("show");
+  }
+  function closePdfModal(){ $("#pdfBackdrop").classList.remove("show"); }
+
+  $("#pdfBtn").onclick=openPdfModal;
+  $("#pdfCancel").onclick=closePdfModal;
+  $("#pdfBackdrop").onclick=(e)=>{ if(e.target===$("#pdfBackdrop")) closePdfModal(); };
+
+  $("#repSession").onclick=()=>{ closePdfModal(); buildSessionPDF(); };
+  $("#repMatrix").onclick=()=>{ closePdfModal(); buildMatrixPDF(); };
+  // le rapport joueur : 1er clic révèle le sélecteur, 2e clic (bouton "Générer") lance
+  $("#repPlayer").onclick=()=>{
+    const pick=$("#repPlayerPick");
+    if(!players.length){ toast("Aucun joueur"); return; }
+    if(!pick.classList.contains("show")){
+      pick.classList.add("show");
+      $("#repPlayer").querySelector(".rc-d").textContent="Choisissez le joueur ci-dessous, puis re-cliquez pour générer.";
+      return;
+    }
+    const idx=parseInt($("#repPlayerSelect").value,10);
+    closePdfModal(); buildPlayerPDF(players[idx]);
+  };
+  $("#repPlayerSelect").onclick=(e)=>e.stopPropagation();
+
+  /* ================================================================
+     ESPACE PARTAGÉ MULTI-COACHS + SAUVEGARDES EN LIGNE (v2.1)
+     ----------------------------------------------------------------
+     Les données sont "aplaties" en petits objets (équipe, joueur,
+     salle, événement, pointage) synchronisés un par un : deux coachs
+     peuvent pointer en même temps sans s'écraser.
+     ================================================================ */
+  const CLOUD_KEY="presencehand_cloud";
+  let cloud = { session:null, espace:null, cursor:0, base:null, lastSnapDay:"", lastSync:null, pendingInvite:null, pendingEmail:"" };
+  let applying=false, syncing=false, syncAgain=false, syncState="off", syncErr="", fullPullDone=false, syncTimer=null;
+  function loadCloud(){ try{ const c=JSON.parse(localStorage.getItem(CLOUD_KEY)||"null"); if(c&&typeof c==="object") cloud=Object.assign(cloud,c); }catch(_){} }
+  function saveCloud(){ try{ localStorage.setItem(CLOUD_KEY, JSON.stringify(cloud)); }catch(_){} }
+  function serverReady(){ return !!(online.url && online.key); }
+  function cloudActive(){ return serverReady() && !!cloud.session && !!cloud.espace; }
+
+  /* ---------- Authentification (e-mail + code à usage unique) ---------- */
+  async function authCall(path, body, token){
+    const h={ "Content-Type":"application/json", "apikey":online.key };
+    if(token) h.Authorization="Bearer "+token;
+    const r=await fetch(online.url.replace(/\/+$/,"")+"/auth/v1/"+path,{ method:"POST", headers:h, body:JSON.stringify(body||{}) });
+    const txt=await r.text(); let j=null; try{ j=txt?JSON.parse(txt):null; }catch(_){}
+    if(!r.ok) throw new Error((j&&(j.msg||j.message||j.error_description||j.error))||("HTTP "+r.status));
+    return j;
+  }
+  function setSession(j){
+    const prev=cloud.session||{};
+    cloud.session={
+      access_token:j.access_token, refresh_token:j.refresh_token,
+      expires_at: j.expires_at ? j.expires_at*1000 : Date.now()+(j.expires_in||3600)*1000,
+      email:(j.user&&j.user.email)||prev.email||"", user_id:(j.user&&j.user.id)||prev.user_id||""
+    };
+    saveCloud();
+  }
+  let refreshing=null;
+  async function ensureToken(){
+    const s=cloud.session; if(!s) return null;
+    if(s.expires_at-Date.now()>60000) return s.access_token;
+    if(!refreshing) refreshing=(async()=>{
+      try{ setSession(await authCall("token?grant_type=refresh_token",{ refresh_token:s.refresh_token })); return cloud.session.access_token; }
+      catch(e){
+        // jeton révoqué / expiré : il faut se reconnecter (une simple coupure réseau ne déconnecte pas)
+        if(/refresh token|invalid|expired|not found|revoked/i.test(e.message||"")){ cloud.session=null; saveCloud(); setSyncState("off"); renderCloudUI(); }
+        throw e;
+      }finally{ refreshing=null; }
+    })();
+    return refreshing;
+  }
+  async function sendCode(email){
+    await authCall("otp",{ email, create_user:true });
+    cloud.pendingEmail=email; saveCloud();
+  }
+  // Accepte le code à 6 chiffres OU le lien "Sign in" reçu par mail (modèle Supabase par défaut)
+  function parseAuthInput(s){
+    s=String(s||"").trim();
+    const digits=s.replace(/\s/g,"");
+    if(/^\d{6,10}$/.test(digits)) return { code:digits };
+    const m=s.match(/[?&]token=([A-Za-z0-9_-]{20,})/);
+    if(m){ const t=s.match(/[?&]type=([a-z_]+)/); return { hash:m[1], type:t?t[1]:"magiclink" }; }
+    if(/^[A-Za-z0-9_-]{30,}$/.test(s)) return { hash:s, type:"magiclink" };
+    return null;
+  }
+  async function verifyCode(email, input){
+    const a=parseAuthInput(input); if(!a) throw new Error("Code ou lien non reconnu");
+    const body = a.code ? { type:"email", email, token:a.code } : { type:a.type, token_hash:a.hash };
+    setSession(await authCall("verify", body));
+    cloud.pendingEmail="";
+    if(cloud.pendingInvite){
+      const inv=cloud.pendingInvite;
+      try{
+        const esp=await rpc("rejoindre_espace",{ p_code:inv.c });
+        cloud.pendingInvite=null; saveCloud();
+        await connectSpace(esp);
+      }catch(e){ toast("Invitation : "+shortErr(e)); }
+    }
+  }
+  async function logout(){
+    const s=cloud.session;
+    if(s){ try{ await authCall("logout",{},s.access_token); }catch(_){} }
+    cloud.session=null; cloud.espace=null; cloud.base=null; cloud.cursor=0; fullPullDone=false; saveCloud();
+    setSyncState("off"); renderCloudUI(); toast("Déconnecté — les données restent sur ce téléphone");
+  }
+
+  /* ---------- Aplatissement des données ---------- */
+  const EVENT_FIELDS=["location","opponent","timeMatch","timeMeet","venueId","awayAddress","timeCovoit","covoitVenueId","minibus"];
+  function stable(v){
+    if(v===undefined) return "~";
+    if(v===null || typeof v!=="object") return JSON.stringify(v);
+    if(Array.isArray(v)) return "["+v.map(stable).join(",")+"]";
+    return "{"+Object.keys(v).sort().filter(k=>v[k]!==undefined).map(k=>JSON.stringify(k)+":"+stable(v[k])).join(",")+"}";
+  }
+  function flatten(){
+    const m={};
+    teams.forEach((t,i)=>{
+      m["team:"+t.id]={ name:t.name, o:i };
+      t.players.forEach(p=>{ m["player:"+p.id]={ teamId:t.id, name:p.name }; });
+    });
+    venues.forEach((v,i)=>{ m["venue:"+v.id]={ name:v.name, address:v.address||"", o:i }; });
+    ["training","match"].forEach(md=>eventsByMode[md].forEach(ev=>{
+      const d={ mode:md, date:ev.date };
+      EVENT_FIELDS.forEach(f=>{ if(ev[f]) d[f]=ev[f]; });
+      if(ev.online && ev.online.id) d.online={ id:ev.online.id, editKey:ev.online.editKey, publishedAt:ev.online.publishedAt||null, players:ev.online.players||[] };
+      m["event:"+ev.id]=d;
+      Object.keys(ev.marks||{}).forEach(pid=>{ m["mark:"+ev.id+":"+pid]={ s:ev.marks[pid] }; });
+    }));
+    if(online.page) m["settings:page"]={ page:online.page };
+    return m;
+  }
+  function applyFlat(m){
+    const prev={}; ["training","match"].forEach(md=>eventsByMode[md].forEach(e=>{ prev[e.id]=e; }));
+    const tmap={}, tl=[];
+    Object.keys(m).forEach(k=>{ if(k.startsWith("team:")){ const t={ id:k.slice(5), name:String(m[k].name||"Équipe"), players:[], o:+m[k].o||0 }; tmap[t.id]=t; tl.push(t); } });
+    Object.keys(m).forEach(k=>{ if(k.startsWith("player:")){ const t=tmap[m[k].teamId]; if(t) t.players.push({ id:k.slice(7), name:String(m[k].name||"Joueur") }); } });
+    tl.sort((a,b)=>a.o-b.o); tl.forEach(t=>{ delete t.o; });
+    const ev={ training:[], match:[] }, emap={};
+    Object.keys(m).forEach(k=>{
+      if(!k.startsWith("event:")) return;
+      const d=m[k], id=k.slice(6), md=d.mode==="match"?"match":"training";
+      const e={ id, date:d.date||todayISO(), marks:{} };
+      EVENT_FIELDS.forEach(f=>{ if(d[f]) e[f]=d[f]; });
+      if(d.online && d.online.id){
+        const po=prev[id] && prev[id].online;
+        const cache = po && po.id===d.online.id ? { responses:po.responses||[], fetchedAt:po.fetchedAt||null, missing:!!po.missing } : { responses:[], fetchedAt:null, missing:false };
+        e.online=Object.assign(cache, d.online);
+      }
+      ev[md].push(e); emap[id]=e;
+    });
+    Object.keys(m).forEach(k=>{
+      if(!k.startsWith("mark:")) return;
+      const rest=k.slice(5), i=rest.indexOf(":"), e=emap[rest.slice(0,i)];
+      if(e && m[k] && m[k].s) e.marks[rest.slice(i+1)]=m[k].s;
+    });
+    const vl=[];
+    Object.keys(m).forEach(k=>{ if(k.startsWith("venue:")) vl.push({ id:k.slice(6), name:String(m[k].name||"Salle"), address:String(m[k].address||""), o:+m[k].o||0 }); });
+    vl.sort((a,b)=>a.o-b.o); vl.forEach(v=>{ delete v.o; });
+    if(m["settings:page"] && m["settings:page"].page) online.page=String(m["settings:page"].page);
+
+    applying=true;
+    try{
+      teams = tl.length ? tl : [{ id:uid("t"), name:"Équipe 1", players:[] }];
+      if(!teams.some(t=>t.id===currentTeamId)) currentTeamId=teams[0].id;
+      players=currentTeam().players;
+      eventsByMode=ev; venues=vl;
+      ["training","match"].forEach(md=>{
+        if(!ev[md].some(e=>e.id===currentIdByMode[md])){
+          const last=ev[md].slice().sort((a,b)=>b.date.localeCompare(a.date))[0];
+          currentIdByMode[md]=last?last.id:null;
+        }
+      });
+      renderAll();
+    }finally{ applying=false; }
+  }
+  function rowsToMap(rows){ const m={}; (rows||[]).forEach(r=>{ if(!r.deleted) m[r.k]=r.data; }); return m; }
+  function hasRealLocalData(){
+    const f=flatten();
+    return Object.keys(f).some(k=>{
+      if(k.startsWith("mark:") || k.startsWith("venue:")) return true;
+      if(k.startsWith("player:")) return !/^player:p[1-5]$/.test(k);
+      if(k.startsWith("event:")) return f[k].mode==="match";
+      return false;
+    });
+  }
+
+  /* ---------- Connexion à un espace ---------- */
+  async function connectSpace(esp){
+    const pull=await rpc("sync_pull",{ p_espace:esp.id, p_since:0 });
+    const remote=rowsToMap(pull.rows);
+    const hasRemote=Object.keys(remote).length>0, hasLocal=hasRealLocalData();
+    let strategy = hasRemote ? (hasLocal ? null : "remote") : "push";
+    if(!strategy){
+      strategy=await askChoice("Des données existent des deux côtés",
+        `L'espace « ${esp.name} » contient déjà des données, et ce téléphone aussi. Que voulez-vous faire ?`,
+        [ { label:"☁ Prendre celles de l'espace", value:"remote", primary:true, desc:"Recommandé si vous rejoignez un collègue. Une copie de ce téléphone est gardée en secours." },
+          { label:"🔀 Fusionner les deux", value:"merge", desc:"Ajoute les équipes, joueurs et dates de ce téléphone à l'espace." },
+          { label:"Annuler", value:null } ]);
+      if(!strategy) return false;
+    }
+    try{ localStorage.setItem("presencehand_avant_espace", JSON.stringify(currentData())); }catch(_){}
+    cloud.espace={ id:esp.id, name:esp.name, role:esp.role };
+    cloud.cursor=pull.rev||0; fullPullDone=true;
+    if(strategy==="remote"){ applyFlat(remote); cloud.base=remote; }
+    else if(strategy==="merge"){ applyFlat(Object.assign({}, remote, flatten())); cloud.base=remote; }
+    else { cloud.base={}; }   // espace vide : tout ce téléphone est envoyé
+    saveCloud();
+    await syncNow();
+    toast("Espace « "+esp.name+" » connecté");
+    renderCloudUI();
+    return true;
+  }
+  function leaveLocal(){
+    cloud.espace=null; cloud.base=null; cloud.cursor=0; fullPullDone=false; saveCloud();
+    setSyncState("off"); renderCloudUI();
+  }
+
+  /* ---------- Synchronisation ---------- */
+  function scheduleSync(delay){
+    if(applying || !cloudActive()) return;
+    clearTimeout(syncTimer); syncTimer=setTimeout(()=>syncNow(), delay==null?2500:delay);
+  }
+  async function syncNow(){
+    if(!cloudActive()){ setSyncState("off"); return; }
+    if(syncing){ syncAgain=true; return; }
+    syncing=true; setSyncState("busy");
+    try{
+      const esp=cloud.espace.id;
+      const local=flatten(), base=cloud.base||{};
+      const changes=[], changed=new Set();
+      Object.keys(local).forEach(k=>{ if(stable(local[k])!==stable(base[k])){ changes.push({ k, data:local[k] }); changed.add(k); } });
+      Object.keys(base).forEach(k=>{ if(!(k in local)){ changes.push({ k, deleted:true }); changed.add(k); } });
+
+      const full=!fullPullDone;
+      const pull=await rpc("sync_pull",{ p_espace:esp, p_since: full?0:(cloud.cursor||0) });
+      fullPullDone=true;
+      const newBase = full ? rowsToMap(pull.rows) : Object.assign({}, base);
+      const delta={};   // modifications venant des autres coachs
+      (pull.rows||[]).forEach(r=>{
+        if(!full){ if(r.deleted) delete newBase[r.k]; else newBase[r.k]=r.data; }
+        if(changed.has(r.k)) return;                       // modif locale en attente : elle gagne
+        const cur=local[r.k];
+        if(r.deleted){ if(r.k in local) delta[r.k]=null; }
+        else if(stable(cur)!==stable(r.data)) delta[r.k]=r.data;
+      });
+      if(full){ Object.keys(local).forEach(k=>{ if(!changed.has(k) && !(k in newBase) && (k in base)) delta[k]=null; }); }
+
+      for(let i=0;i<changes.length;i+=500){
+        await rpc("sync_push",{ p_espace:esp, p_rows:changes.slice(i,i+500) });
+      }
+      changes.forEach(c=>{ if(c.deleted) delete newBase[c.k]; else newBase[c.k]=c.data; });
+      cloud.base=newBase; cloud.cursor=Math.max(cloud.cursor||0, pull.rev||0);
+      cloud.lastSync=new Date().toISOString();
+
+      const dk=Object.keys(delta);
+      if(dk.length){
+        // on n'écrase pas ce qui a été modifié pendant l'échange réseau
+        const now=flatten(); let touched=false;
+        dk.forEach(k=>{
+          if(stable(now[k])!==stable(local[k])) return;
+          if(delta[k]===null) delete now[k]; else now[k]=delta[k];
+          touched=true;
+        });
+        if(touched) applyFlat(now);
+      }
+      saveCloud();
+      setSyncState("ok");
+      // sauvegarde automatique : une par jour et par téléphone
+      if(cloud.lastSnapDay!==todayISO()){
+        try{ await rpc("creer_instantane",{ p_espace:esp, p_data:flatten(), p_label:"Automatique" }); cloud.lastSnapDay=todayISO(); saveCloud(); }catch(_){}
+      }
+    }catch(e){
+      const m=shortErr(e);
+      if(/pas membre/i.test(m)){ toast("Vous ne faites plus partie de cet espace"); leaveLocal(); }
+      else setSyncState("err", m);
+    }finally{
+      syncing=false;
+      if(syncAgain){ syncAgain=false; scheduleSync(500); }
+    }
+  }
+  setInterval(()=>{ if(document.visibilityState==="visible") syncNow(); }, 30000);
+  document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") syncNow(); });
+  window.addEventListener("online",()=>syncNow());
+
+  /* ---------- Indicateurs d'état ---------- */
+  function setSyncState(st, err){ syncState=st; syncErr=err||""; renderCloudStatus(); }
+  function renderCloudStatus(){
+    const dot=$("#syncDot"); if(dot) dot.className="sync-dot "+(cloudActive()?syncState:"off");
+    const line=$("#spaceLine");
+    if(line){
+      if(!cloudActive()){ line.innerHTML=""; }
+      else {
+        const t = syncState==="busy" ? "synchronisation…" : syncState==="err" ? "⚠ hors ligne" : (cloud.lastSync ? "à jour "+hhmm(cloud.lastSync) : "");
+        line.innerHTML=`☁ <b>${escapeHtml(cloud.espace.name)}</b> · ${t}`;
+      }
+    }
+    const st=$("#spaceStatus");
+    if(st){
+      st.textContent = syncState==="busy" ? "Synchronisation en cours…"
+        : syncState==="err" ? "⚠ Dernière synchronisation échouée : "+syncErr
+        : cloud.lastSync ? "✓ Synchronisé à "+hhmm(cloud.lastSync) : "";
+      st.className="ol-test "+(syncState==="err"?"err":syncState==="ok"?"ok":"");
+    }
+  }
+
+  /* ---------- Invitations ---------- */
+  function b64e(o){ return btoa(unescape(encodeURIComponent(JSON.stringify(o)))); }
+  function b64d(s){ return JSON.parse(decodeURIComponent(escape(atob(s)))); }
+  async function inviteCoach(){
+    try{
+      const code=await rpc("creer_invitation",{ p_espace:cloud.espace.id, p_role:"coach" });
+      const inv="PH1:"+b64e({ u:online.url, k:online.key, p:online.page, c:code, n:cloud.espace.name });
+      const text=[
+        "🤾 Rejoins l'espace « "+cloud.espace.name+" » sur Présence'Hand",
+        "",
+        "1. Ouvre Présence'Hand, bouton ⚙ en haut",
+        "2. Colle cette invitation dans « Vous avez reçu une invitation ? » :",
+        inv,
+        "3. Connecte-toi avec ton e-mail (tu reçois un code).",
+        "",
+        "Invitation valable 7 jours (code "+code+")."
+      ].join("\n");
+      shareText(text);
+    }catch(e){ toast("Invitation impossible : "+shortErr(e)); }
+  }
+  function readInvite(str){
+    const s=String(str||"").trim();
+    const m=s.match(/PH1:([A-Za-z0-9+/=]+)/);
+    if(m){
+      try{
+        const o=b64d(m[1]);
+        if(o.u) online.url=String(o.u).replace(/\/+$/,"");
+        if(o.k) online.key=String(o.k);
+        if(o.p) online.page=String(o.p);
+        cloud.pendingInvite={ c:String(o.c||""), n:String(o.n||"") };
+        persist(); saveCloud();
+        return true;
+      }catch(_){ return false; }
+    }
+    if(/^[0-9A-F]{4}-?[0-9A-F]{4}$/i.test(s)){ cloud.pendingInvite={ c:s.toUpperCase(), n:"" }; saveCloud(); return true; }
+    return false;
+  }
+
+  /* ---------- Fenêtre de choix générique ---------- */
+  function askChoice(title, text, options){
+    return new Promise(resolve=>{
+      $("#choiceTitle").textContent=title; $("#choiceText").textContent=text;
+      const box=$("#choiceBtns"); box.innerHTML="";
+      options.forEach(o=>{
+        const b=document.createElement("button"); b.className="report-card";
+        b.innerHTML=`<div class="rc-txt"><div class="rc-t">${escapeHtml(o.label)}</div>${o.desc?`<div class="rc-d">${escapeHtml(o.desc)}</div>`:""}</div>`;
+        if(o.primary) b.style.borderColor="var(--accent)";
+        b.onclick=()=>{ $("#choiceBackdrop").classList.remove("show"); resolve(o.value); };
+        box.appendChild(b);
+      });
+      $("#choiceBackdrop").classList.add("show");
+    });
+  }
+
+  /* ---------- Fenêtre « Réglages en ligne » ---------- */
+  let membresCache=null, snapsCache=null, busyUI=false;
+  function openOnline(){
+    $("#olUrl").value=online.url; $("#olKey").value=online.key; $("#olPage").value=online.page;
+    $("#olTest").textContent=""; $("#olTest").className="ol-test";
+    $("#olInvite").value="";
+    $("#sectServer").open = !serverReady();
+    $("#onlineBackdrop").classList.add("show");
+    membresCache=null; snapsCache=null;
+    renderCloudUI();
+    if(cloudActive()){ loadMembres(); loadSnaps(); syncNow(); }
+  }
+  function closeOnline(){ $("#onlineBackdrop").classList.remove("show"); }
+  function readOnlineForm(){
+    return { url:$("#olUrl").value.trim().replace(/\/+$/,""), key:$("#olKey").value.trim(), page:$("#olPage").value.trim() };
+  }
+  $("#onlineBtn").onclick=openOnline;
+  $("#olClose").onclick=closeOnline;
+  $("#onlineBackdrop").onclick=(e)=>{ if(e.target===$("#onlineBackdrop")) closeOnline(); };
+  $("#olTestBtn").onclick=async()=>{
+    const c=readOnlineForm(); const out=$("#olTest");
+    if(!/^https:\/\//.test(c.url) || !c.key){ out.className="ol-test err"; out.textContent="Renseignez l'adresse Supabase (https://…) et la clé."; return; }
+    out.className="ol-test"; out.textContent="Test en cours…";
+    try{
+      await rpc("get_convocation",{ p_id:"00000000-0000-0000-0000-000000000000" }, c);
+      out.className="ol-test ok"; out.textContent="✓ Connexion à Supabase OK"+(c.page?"":" — il manque l'adresse de la page de réponse.");
+    }catch(e){
+      out.className="ol-test err"; out.textContent="✗ Échec : "+shortErr(e)+" (script SQL exécuté ? bonne clé ?)";
+    }
+  };
+  $("#olSave").onclick=()=>{
+    const c=readOnlineForm();
+    if(c.url && !/^https:\/\//.test(c.url)){ toast("L'adresse Supabase doit commencer par https://"); return; }
+    if(c.page && !/^https?:\/\//.test(c.page)){ toast("L'adresse de la page doit commencer par https://"); return; }
+    const serverChanged = c.url!==online.url || c.key!==online.key;
+    online=c; persist();
+    if(serverChanged && cloud.session){ cloud.session=null; leaveLocal(); }
+    renderMatchDetails(); renderCloudUI();
+    toast("Réglages du serveur enregistrés");
+    if(serverReady()) $("#sectAccount").open=true;
+  };
+  $("#olInviteBtn").onclick=()=>{
+    if(!readInvite($("#olInvite").value)){ toast("Invitation non reconnue"); return; }
+    $("#olUrl").value=online.url; $("#olKey").value=online.key; $("#olPage").value=online.page;
+    renderMatchDetails(); renderCloudUI();
+    if(cloud.session){ joinPending(); }
+    else { $("#sectAccount").open=true; toast("Invitation lue : connectez-vous avec votre e-mail"); }
+  };
+  async function joinPending(){
+    const inv=cloud.pendingInvite; if(!inv) return;
+    try{
+      const esp=await rpc("rejoindre_espace",{ p_code:inv.c });
+      cloud.pendingInvite=null; saveCloud();
+      await connectSpace(esp);
+      membresCache=null; snapsCache=null; loadMembres(); loadSnaps();
+    }catch(e){ toast("Invitation : "+shortErr(e)); }
+    renderCloudUI();
+  }
+
+  async function uiRun(fn){
+    if(busyUI) return; busyUI=true;
+    try{ await fn(); }catch(e){ toast(shortErr(e)); }
+    finally{ busyUI=false; renderCloudUI(); }
+  }
+
+  function renderCloudUI(){
+    renderCloudStatus();
+    if(!$("#onlineBackdrop").classList.contains("show")) return;
+    $("#stServer").textContent = serverReady() ? "✓" : "à régler";
+    $("#stAccount").textContent = cloud.session ? "✓ "+(cloud.session.email||"") : "";
+    $("#stSpace").textContent = cloud.espace ? "✓ "+cloud.espace.name : "";
+
+    /* --- Compte --- */
+    const acc=$("#accountBox");
+    if(!serverReady()){ acc.innerHTML='<p class="help">Réglez d\'abord le serveur (étape 1) ou collez une invitation.</p>'; }
+    else if(cloud.session){
+      acc.innerHTML=`<p class="help">Connecté en tant que <b>${escapeHtml(cloud.session.email||"?")}</b>.</p>
+        <div class="modal-actions"><button class="hbtn" id="accLogout">Se déconnecter</button></div>`;
+      $("#accLogout").onclick=()=>uiRun(logout);
+    } else {
+      const waiting=!!cloud.pendingEmail;
+      acc.innerHTML=`<p class="help">Chaque coach a son propre compte : pas de mot de passe, un code est envoyé par e-mail à chaque connexion.</p>
+        <div class="form-field"><label for="accEmail">Votre e-mail</label>
+          <input type="email" id="accEmail" value="${escapeHtml(cloud.pendingEmail||"")}" placeholder="prenom.nom@exemple.fr" autocomplete="email"></div>
+        ${waiting?`<div class="form-field"><label for="accCode">Code reçu par e-mail (ou lien « Sign in » copié)</label>
+          <input type="text" id="accCode" autocomplete="one-time-code" placeholder="123456 — ou appui long sur le lien du mail › Copier › coller ici"></div>`:""}
+        <div class="modal-actions">
+          <button class="hbtn${waiting?"":" primary"}" id="accSend">${waiting?"Renvoyer un code":"Recevoir un code"}</button>
+          ${waiting?'<button class="hbtn primary" id="accVerify">Valider</button>':""}
+        </div>`;
+      $("#accSend").onclick=()=>uiRun(async()=>{
+        const em=$("#accEmail").value.trim();
+        if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ toast("E-mail invalide"); return; }
+        await sendCode(em); toast("Code envoyé à "+em+" (vérifiez les spams)");
+      });
+      if(waiting) $("#accVerify").onclick=()=>uiRun(async()=>{
+        const code=$("#accCode").value;
+        if(!parseAuthInput(code)){ toast("Collez le code à 6 chiffres ou le lien reçu par mail"); return; }
+        await verifyCode($("#accEmail").value.trim(), code);
+        toast("Connecté");
+        $("#sectSpace").open=true;
+        spacesCache=null;
+      });
+    }
+
+    /* --- Espace --- */
+    const sp=$("#spaceBox");
+    if(!cloud.session){ sp.innerHTML='<p class="help">Connectez-vous (étape 2) pour partager les données avec d\'autres coachs.</p>'; }
+    else if(!cloud.espace){
+      sp.innerHTML=`<p class="help">Un espace regroupe les équipes, joueurs, entraînements et matchs partagés entre plusieurs coachs.</p>
+        <div id="spaceList" class="report-cards"><div class="help">Chargement…</div></div>
+        <div class="modal-actions"><button class="hbtn primary" id="spCreate">＋ Créer un espace</button></div>
+        <div class="form-field" style="margin-top:12px"><label for="spCode">Rejoindre avec un code</label>
+          <input type="text" id="spCode" placeholder="ABCD-1234 ou invitation PH1:…"></div>
+        <div class="modal-actions"><button class="hbtn" id="spJoin">Rejoindre</button></div>`;
+      $("#spCreate").onclick=()=>uiRun(async()=>{
+        const nm=prompt("Nom de l'espace (club, catégorie…) :", currentTeam()?currentTeam().name:"Mon club"); if(!nm||!nm.trim()) return;
+        const esp=await rpc("creer_espace",{ p_name:nm.trim() });
+        await connectSpace(esp); loadMembres(); loadSnaps();
+      });
+      $("#spJoin").onclick=()=>uiRun(async()=>{
+        if(!readInvite($("#spCode").value)){ toast("Code non reconnu"); return; }
+        await joinPending();
+      });
+      loadSpaces();
+    } else {
+      const admin=cloud.espace.role==="admin";
+      sp.innerHTML=`<p class="help">Espace <b>${escapeHtml(cloud.espace.name)}</b> · vous êtes ${admin?"administrateur":"coach"}.
+        Les modifications sont envoyées automatiquement.</p>
+        <div class="ol-test" id="spaceStatus"></div>
+        <div class="modal-actions">
+          <button class="hbtn" id="spSync">🔄 Synchroniser</button>
+          ${admin?'<button class="hbtn primary" id="spInvite">📲 Inviter un coach</button>':""}
+        </div>
+        <h3 class="sub-h">Coachs de l'espace</h3>
+        <div id="memberList"><div class="help">Chargement…</div></div>
+        <div class="modal-actions">
+          <button class="hbtn" id="spDetach" title="Ce téléphone arrête de synchroniser, les données restent dessus">Déconnecter ce téléphone</button>
+          <button class="hbtn" id="spLeave" style="color:var(--danger)">Quitter l'espace</button>
+        </div>`;
+      $("#spSync").onclick=()=>uiRun(async()=>{ fullPullDone=false; await syncNow(); });
+      if(admin) $("#spInvite").onclick=()=>uiRun(inviteCoach);
+      $("#spDetach").onclick=()=>{ if(confirm("Arrêter la synchronisation sur ce téléphone ?\nLes données restent sur le téléphone et dans l'espace.")){ leaveLocal(); } };
+      $("#spLeave").onclick=()=>uiRun(async()=>{
+        if(!confirm("Quitter définitivement l'espace « "+cloud.espace.name+" » ?\nVous n'aurez plus accès aux données partagées (elles restent sur ce téléphone).")) return;
+        await rpc("retirer_membre",{ p_espace:cloud.espace.id, p_user:cloud.session.user_id });
+        leaveLocal(); toast("Vous avez quitté l'espace");
+      });
+      renderMembres();
+      renderCloudStatus();
+    }
+
+    /* --- Sauvegardes --- */
+    const bk=$("#backupBox");
+    if(!cloudActive()){
+      bk.innerHTML='<p class="help">Les sauvegardes en ligne s\'activent quand ce téléphone est relié à un espace. En attendant, utilisez « ⤓ Fichier » dans le menu.</p>';
+    } else {
+      bk.innerHTML=`<p class="help">Une sauvegarde automatique est faite chaque jour ; les 30 dernières sont gardées. Restaurer remplace les données de <b>tous les coachs</b> de l'espace.</p>
+        <div class="modal-actions"><button class="hbtn primary" id="bkNow">💾 Sauvegarder maintenant</button></div>
+        <div id="snapList"><div class="help">Chargement…</div></div>`;
+      $("#bkNow").onclick=()=>uiRun(async()=>{
+        const label=prompt("Nom de la sauvegarde (facultatif) :", "Manuelle"); if(label===null) return;
+        await syncNow();
+        await rpc("creer_instantane",{ p_espace:cloud.espace.id, p_data:flatten(), p_label:label.trim()||"Manuelle" });
+        toast("Sauvegarde créée"); snapsCache=null; loadSnaps();
+      });
+      renderSnaps();
+    }
+  }
+
+  let spacesCache=null;
+  async function loadSpaces(){
+    try{ spacesCache=await rpc("mes_espaces",{}); }catch(e){ spacesCache=[]; toast(shortErr(e)); }
+    const box=$("#spaceList"); if(!box) return;
+    if(!spacesCache.length){ box.innerHTML='<div class="help">Vous n\'avez encore aucun espace.</div>'; return; }
+    box.innerHTML="";
+    spacesCache.forEach(esp=>{
+      const b=document.createElement("button"); b.className="report-card";
+      b.innerHTML=`<div class="rc-ico">☁</div><div class="rc-txt"><div class="rc-t">${escapeHtml(esp.name)}</div>
+        <div class="rc-d">${esp.role==="admin"?"Administrateur":"Coach"} · ${esp.membres} coach${esp.membres>1?"s":""} · appuyer pour relier ce téléphone</div></div>`;
+      b.onclick=()=>uiRun(async()=>{ await connectSpace(esp); loadMembres(); loadSnaps(); });
+      box.appendChild(b);
+    });
+  }
+  async function loadMembres(){
+    if(!cloudActive()) return;
+    try{ membresCache=await rpc("membres_espace",{ p_espace:cloud.espace.id }); }catch(e){ membresCache=[]; }
+    const me=(membresCache||[]).find(m=>m.moi);
+    if(me && me.role!==cloud.espace.role){ cloud.espace.role=me.role; saveCloud(); renderCloudUI(); return; }
+    renderMembres();
+  }
+  function renderMembres(){
+    const box=$("#memberList"); if(!box || !membresCache) return;
+    const admin=cloud.espace && cloud.espace.role==="admin";
+    box.innerHTML="";
+    membresCache.forEach(m=>{
+      const el=document.createElement("div"); el.className="venue";
+      el.innerHTML=`<div class="vinfo"><div class="vn">${escapeHtml(m.email||"?")}${m.moi?" (vous)":""}</div>
+        <div class="va">${m.role==="admin"?"Administrateur":"Coach"}</div></div>
+        ${admin&&!m.moi?`<div class="vedit" title="${m.role==="admin"?"Repasser coach":"Nommer administrateur"}">${m.role==="admin"?"⬇":"⭐"}</div><div class="vdel" title="Retirer de l'espace">✕</div>`:""}`;
+      if(admin && !m.moi){
+        el.querySelector(".vedit").onclick=()=>uiRun(async()=>{
+          await rpc("changer_role",{ p_espace:cloud.espace.id, p_user:m.user_id, p_role:m.role==="admin"?"coach":"admin" });
+          await loadMembres();
+        });
+        el.querySelector(".vdel").onclick=()=>uiRun(async()=>{
+          if(!confirm("Retirer "+m.email+" de l'espace ?")) return;
+          await rpc("retirer_membre",{ p_espace:cloud.espace.id, p_user:m.user_id });
+          await loadMembres();
+        });
+      }
+      box.appendChild(el);
+    });
+  }
+  async function loadSnaps(){
+    if(!cloudActive()) return;
+    try{ snapsCache=await rpc("liste_instantanes",{ p_espace:cloud.espace.id }); }catch(e){ snapsCache=[]; }
+    renderSnaps();
+  }
+  function renderSnaps(){
+    const box=$("#snapList"); if(!box || !snapsCache) return;
+    if(!snapsCache.length){ box.innerHTML='<div class="help">Aucune sauvegarde pour l\'instant.</div>'; return; }
+    const admin=cloud.espace && cloud.espace.role==="admin";
+    box.innerHTML="";
+    snapsCache.forEach(s=>{
+      const d=new Date(s.created_at);
+      const when=d.toLocaleDateString("fr-FR",{ day:"2-digit", month:"2-digit", year:"numeric" })+" "+hhmm(s.created_at);
+      const el=document.createElement("div"); el.className="venue";
+      el.innerHTML=`<div class="vinfo"><div class="vn">${escapeHtml(when)} · ${escapeHtml(s.label||"")}</div>
+        <div class="va">${escapeHtml(s.email||"")} · ${Math.max(1,Math.round((s.taille||0)/1024))} Ko</div></div>
+        ${admin?'<div class="vedit" title="Restaurer cette sauvegarde">↺</div>':""}`;
+      if(admin) el.querySelector(".vedit").onclick=()=>uiRun(()=>restoreSnap(s, when));
+      box.appendChild(el);
+    });
+  }
+  async function restoreSnap(s, when){
+    if(!confirm("Restaurer la sauvegarde du "+when+" ?\n\nToutes les données de l'espace (pour tous les coachs) reviendront à cet état. Une sauvegarde de l'état actuel est faite juste avant.")) return;
+    await syncNow();
+    await rpc("creer_instantane",{ p_espace:cloud.espace.id, p_data:flatten(), p_label:"Avant restauration" });
+    const data=await rpc("lire_instantane",{ p_id:s.id });
+    applyFlat(data||{});
+    await syncNow();
+    snapsCache=null; loadSnaps();
+    toast("Sauvegarde restaurée");
+  }
+
+  /* ---------- SAUVEGARDE ---------- */
+  const KEY="presencehand_v1";
+  function persist(){ try{ localStorage.setItem(KEY, JSON.stringify(currentData())); }catch(e){} scheduleSync(); }
+  function sharedWarning(){ return cloudActive() ? "\n\n⚠ Ce téléphone est relié à l'espace partagé « "+cloud.espace.name+" » : cela remplacera aussi les données des autres coachs." : ""; }
+  function currentData(){ return { teams, currentTeamId, eventsByMode, currentIdByMode, mode, venues, online }; }
+
+  function cleanEvents(arr, prefix){
+    return Array.isArray(arr)?arr.map(s=>{
+      const ev={ id:s.id||uid(prefix), date:s.date||todayISO(), marks:s.marks||{} };
+      // détails spécifiques aux matchs (conservés s'ils existent)
+      if(s.location) ev.location=s.location;
+      if(s.opponent) ev.opponent=s.opponent;
+      if(s.timeMatch) ev.timeMatch=s.timeMatch;
+      if(s.timeMeet) ev.timeMeet=s.timeMeet;
+      if(s.venueId) ev.venueId=s.venueId;
+      if(s.awayAddress) ev.awayAddress=s.awayAddress;
+      if(s.timeCovoit) ev.timeCovoit=s.timeCovoit;
+      if(s.covoitVenueId) ev.covoitVenueId=s.covoitVenueId;
+      if(s.minibus) ev.minibus=s.minibus;
+      // v2 : convocation en ligne (identifiant, clé de modification, réponses en cache)
+      if(s.online && s.online.id && s.online.editKey){
+        ev.online={
+          id:String(s.online.id), editKey:String(s.online.editKey),
+          publishedAt:s.online.publishedAt||null, fetchedAt:s.online.fetchedAt||null,
+          players:Array.isArray(s.online.players)?s.online.players:[],
+          responses:Array.isArray(s.online.responses)?s.online.responses:[],
+          missing:!!s.online.missing,
+        };
+      }
+      return ev;
+    }):[];
+  }
+
+  function applyData(d){
+    if(!d || typeof d!=="object"){ toast("Fichier invalide"); return false; }
+
+    // équipes (commun à tous les formats récents)
+    if(Array.isArray(d.teams)){
+      teams = d.teams.map(t=>({
+        id: t.id||uid("t"),
+        name: String(t.name||"Équipe"),
+        players: Array.isArray(t.players)?t.players.map(p=>({ id:p.id||uid("p"), name:String(p.name||"Joueur") })):[]
+      }));
+      if(!teams.length) teams=[{id:uid("t"),name:"Équipe 1",players:[]}];
+      currentTeamId = d.currentTeamId && teams.some(t=>t.id===d.currentTeamId) ? d.currentTeamId : teams[0].id;
+
+      if(d.eventsByMode && typeof d.eventsByMode==="object"){
+        // --- Format le plus récent : deux modes ---
+        eventsByMode = {
+          training: cleanEvents(d.eventsByMode.training, "s"),
+          match:    cleanEvents(d.eventsByMode.match, "m"),
+        };
+        currentIdByMode = {
+          training: (d.currentIdByMode&&d.currentIdByMode.training) || (eventsByMode.training[0]?eventsByMode.training[0].id:null),
+          match:    (d.currentIdByMode&&d.currentIdByMode.match)    || (eventsByMode.match[0]?eventsByMode.match[0].id:null),
+        };
+        mode = (d.mode==="match")?"match":"training";
+      } else {
+        // --- Format multi-équipes SANS matchs : les sessions -> entraînements ---
+        eventsByMode = { training: cleanEvents(d.sessions, "s"), match: [] };
+        currentIdByMode = {
+          training: (d.currentSessionId && eventsByMode.training.some(s=>s.id===d.currentSessionId)) ? d.currentSessionId : (eventsByMode.training[0]?eventsByMode.training[0].id:null),
+          match: null,
+        };
+        mode="training";
+      }
+
+    } else if(Array.isArray(d.players)){
+      // --- Ancien format (une liste, présences par nom) : migration complète ---
+      const migrated = d.players.map(p=>({ id:uid("p"), name:String(p.name||"Joueur") }));
+      const nameToId = {}; migrated.forEach(p=>{ nameToId[p.name]=p.id; });
+      teams = [{ id:uid("t"), name:"Équipe 1", players:migrated }];
+      currentTeamId = teams[0].id;
+      const training = Array.isArray(d.sessions)?d.sessions.map(s=>{
+        const marks={};
+        Object.entries(s.marks||{}).forEach(([k,v])=>{
+          const nm = k.includes("|") ? k.split("|").slice(1).join("|") : k;
+          const id = nameToId[nm]; if(id) marks[id]=v;
+        });
+        return { id:s.id||uid("s"), date:s.date||todayISO(), marks };
+      }):[];
+      eventsByMode = { training, match: [] };
+      currentIdByMode = { training: training[0]?training[0].id:null, match:null };
+      mode="training";
+    } else {
+      toast("Fichier invalide"); return false;
+    }
+
+    // salles à domicile (commun, tous formats)
+    venues = Array.isArray(d.venues) ? d.venues.map(v=>({ id:v.id||uid("v"), name:String(v.name||"Salle"), address:String(v.address||"") })) : [];
+
+    // réglages en ligne : repris du fichier s'ils y sont, sinon on garde ceux du téléphone
+    if(d.online && typeof d.online==="object" && (d.online.url||d.online.key||d.online.page)){
+      online = { url:String(d.online.url||""), key:String(d.online.key||""), page:String(d.online.page||"") };
+    }
+
+    players = currentTeam() ? currentTeam().players : [];
+    renderAll(); return true;
+  }
+  $("#saveRoster").onclick=()=>{ persist(); toast("Données sauvegardées"); };
+  $("#loadRoster").onclick=()=>{
+    try{ const raw=localStorage.getItem(KEY); if(!raw){ toast("Aucune sauvegarde"); return; }
+      if(confirm("Remplacer les données actuelles par la sauvegarde ?"+sharedWarning())){ if(applyData(JSON.parse(raw))) toast("Données chargées"); }
+    }catch(e){ toast("Chargement impossible"); }
+  };
+  $("#exportRoster").onclick=()=>exportBackup();
+  async function exportBackup(){
+    const json=JSON.stringify(currentData(),null,2);
+    const p=n=>String(n).padStart(2,"0"); const d=new Date();
+    const fname=`presence-hand_${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}.json`;
+    const cap=window.Capacitor;
+    const isNative=!!(cap && (cap.isNativePlatform?cap.isNativePlatform():cap.isNative));
+
+    if(isNative){
+      toast("Préparation du fichier…");
+      try{
+        const ready=await capReady(4000);
+        const P=(cap&&cap.Plugins)||{};
+        if(ready && P.Filesystem && P.Share){
+          // encoder le JSON en base64 (UTF-8)
+          const base64 = btoa(unescape(encodeURIComponent(json)));
+          const res=await P.Filesystem.writeFile({ path:fname, data:base64, directory:"CACHE" });
+          const uri=res&&res.uri?res.uri:null;
+          try{
+            await P.Share.share({ title:"Sauvegarde Présence'Hand", text:fname, files:uri?[uri]:undefined, url:uri||undefined, dialogTitle:"Enregistrer / partager la sauvegarde" });
+          }catch(err){ const m=(err&&err.message)||String(err||""); if(!/cancel/i.test(m)) toast("Partage annulé"); }
+          return;
+        }
+      }catch(e){ /* repli ci-dessous */ }
+    }
+    // repli navigateur : téléchargement classique
+    const blob=new Blob([json],{type:"application/json"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download=fname; a.click(); toast("Fichier exporté");
+  }
+  $("#importRoster").onclick=()=>$("#rosterFile").click();
+  $("#rosterFile").onchange=(e)=>{
+    const f=e.target.files[0]; if(!f)return; const r=new FileReader();
+    r.onload=()=>{ try{ const d=JSON.parse(r.result);
+      if(confirm("Remplacer les données actuelles par le fichier importé ?"+sharedWarning())){ if(applyData(d)) toast("Données importées"); }
+    }catch(err){ toast("Fichier invalide"); } };
+    r.readAsText(f); e.target.value="";
+  };
+
+  /* ---------- MENU MOBILE ---------- */
+  const sidebar=$("#sidebar");
+  function autoClose(){ if(window.matchMedia("(max-width:900px)").matches) closeMenu(); }
+  function openMenu(){ sidebar.classList.add("open"); $("#menuOverlay").classList.add("show"); }
+  function closeMenu(){ sidebar.classList.remove("open"); $("#menuOverlay").classList.remove("show"); }
+  $("#menuToggle").onclick=()=> sidebar.classList.contains("open")?closeMenu():openMenu();
+  $("#menuOverlay").onclick=closeMenu;
+  $("#menuClose").onclick=closeMenu;
+
+  /* ---------- TOAST ---------- */
+  let toastT;
+  function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2200); }
+
+  /* ---------- INIT ---------- */
+  $("#year").textContent=new Date().getFullYear();
+  $("#appVersion").textContent="v"+APP_VERSION;
+  loadCloud();
+  try{ const raw=localStorage.getItem(KEY); if(raw){ const d=JSON.parse(raw); applyData(d); } }catch(e){}
+  if(!teams.length){ teams=[{id:uid("t"),name:"Équipe 1",players:[]}]; currentTeamId=teams[0].id; }
+  if(!currentTeam()){ currentTeamId=teams[0].id; }
+  players = currentTeam().players;
+  // garantir au moins un entraînement de départ
+  if(!eventsByMode.training.length){ const s={id:"s"+Date.now(),date:todayISO(),marks:{}}; eventsByMode.training.push(s); currentIdByMode.training=s.id; }
+  if(!currentIdByMode.training) currentIdByMode.training=eventsByMode.training[0].id;
+  if(!currentIdByMode.match && eventsByMode.match.length) currentIdByMode.match=eventsByMode.match[0].id;
+  renderAll();
+  autoFetch();
+  renderCloudStatus();
+  if(cloudActive()) syncNow();
+})();
+</script>
+</body>
+</html>
